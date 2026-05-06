@@ -1,0 +1,104 @@
+name: AI Issue Analyzer (Gemini)
+
+on:
+  issues:
+    types: [opened] # 이슈가 새로 열렸을 때만 작동
+
+permissions:
+  issues: write # 댓글을 달기 위한 권한
+
+jobs:
+  analyze-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🤖 Gemini AI 중복 및 충돌 검사
+        uses: actions/github-script@v7
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # 깃허브 시크릿에 등록한 Gemini API 키
+        with:
+          script: |
+            // 1. 현재 생성된 새 이슈 정보 가져오기
+            const newIssue = context.payload.issue;
+            
+            // 2. 현재 열려있는 기존 이슈들 가져오기 (최신 30개)
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 30
+            });
+            
+            // 본인(새 이슈)과 PR은 목록에서 제외
+            const existingIssues = openIssues.filter(
+              issue => issue.number !== newIssue.number && !issue.pull_request
+            );
+            
+            if (existingIssues.length === 0) {
+              console.log("비교할 기존 이슈가 없습니다.");
+              return;
+            }
+
+            // 3. AI에게 전달할 데이터 가공 (내용 일부만 자름)
+            const issueContext = existingIssues.map(issue => {
+              const bodySnippet = (issue.body || '').substring(0, 150).replace(/\n/g, ' ');
+              return `- [#${issue.number}] ${issue.title} : ${bodySnippet}...`;
+            }).join('\n');
+
+            const prompt = `
+            당신은 훌륭한 시니어 소프트웨어 엔지니어입니다.
+            방금 우리 프로젝트에 새로운 이슈가 등록되었습니다.
+
+            [새로운 이슈]
+            번호: #${newIssue.number}
+            제목: ${newIssue.title}
+            내용: ${newIssue.body || '내용 없음'}
+
+            [현재 열려있는 기존 이슈 목록]
+            ${issueContext}
+            
+            위 정보를 바탕으로 다음 두 가지를 분석해서 마크다운 형식으로 답변해주세요:
+            1. **중복성**: 새로운 이슈가 기존 이슈 목록 중에 이미 비슷한 내용으로 등록된 것이 있는지? (있다면 이슈 번호 언급)
+            2. **충돌 가능성**: 새로운 이슈를 개발할 때 기존 이슈의 작업과 겹치거나 코드 충돌이 일어날 가능성이 있는지?
+            
+            친절하고 전문적인 말투로 요약해서 답변해주고, 문제가 없다면 "현재 기존 이슈들과의 뚜렷한 중복이나 충돌 가능성은 보이지 않습니다." 라고 말해주세요.
+            `;
+
+            // 4. Gemini API 호출 (요청하신 모델로 변경됨)
+            const apiKey = process.env.GEMINI_API_KEY;
+            const model = 'gemini-3.1-flash-lite-preview'; // ✅ 여기 모델명이 변경되었습니다.
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                contents:[
+                  {
+                    role: "user",
+                    parts: [{ text: prompt }]
+                  }
+                ],
+                generationConfig: {
+                  temperature: 0.3
+                }
+              })
+            });
+
+            if (!response.ok) {
+              console.error("Gemini API 호출 실패:", await response.text());
+              return;
+            }
+
+            const aiData = await response.json();
+            // Gemini 응답 구조에서 텍스트 추출
+            const aiReply = aiData.candidates[0].content.parts[0].text;
+
+            // 5. 분석 결과를 이슈 댓글로 달기
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: newIssue.number,
+              body: `✨ **Gemini AI (3.1 Flash Lite) 이슈 분석 리포트** ✨\n\n${aiReply}`
+            });
