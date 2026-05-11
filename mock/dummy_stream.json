@@ -1,0 +1,11 @@
+[
+  {"chunk": "[INFO] Agent 'Aider' initialized.\n", "delay": 0.5},
+  {"chunk": "Loading project files...\n", "delay": 1.2},
+  {"chunk": "Analyzing password logic in src/auth.py ", "delay": 0.8},
+  {"chunk": ".", "delay": 0.3},
+  {"chunk": ".", "delay": 0.3},
+  {"chunk": ".\n", "delay": 0.3},
+  {"chunk": "[WARN] Found hardcoded delay in logic.\n", "delay": 1.5},
+  {"chunk": "Refactoring code... ", "delay": 2.0},
+  {"chunk": "[SUCCESS] Task completed. 1200 tokens used.\n", "delay": 0.5}
+]
