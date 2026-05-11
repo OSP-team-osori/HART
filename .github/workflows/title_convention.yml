@@ -2,7 +2,7 @@ name: Title Convention Check
 
 on:
   issues:
-    types: [opened, edited, synchronize, reopened, ready_for_review]
+    types: [opened, edited, reopened]
   pull_request: # PR에서도 작동하도록 추가
     types: [opened, edited, synchronize, reopened, ready_for_review]
 
