@@ -16,8 +16,7 @@ services:
       retries: 10
 
   app:
-    build:
-      context: ../backend
+    build: .
     ports:
       - "8090:8090"
     environment:
