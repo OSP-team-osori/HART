@@ -1,7 +1,7 @@
 ---
 name: Bug Report (버그 제보)
 about: 프로젝트에서 발생한 버그나 오류를 제보합니다.
-title: "[BUG] 발생한 버그를 요약해서 적어주세요"
+title: "bug : 발생한 버그를 요약해서 적어주세요"
 labels: '🐛 bug'
 assignees: ''
 ---
