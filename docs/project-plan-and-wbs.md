@@ -123,6 +123,6 @@ gantt
   - 매주 수요일 오후 9시 Discord 주간 스프린트 회의 (이슈 트래킹 및 목표 설정)
   - 기술적인 Blocker 발생 시 단톡방에 즉각 공유하여 개발 지연 방지
 - **버전 관리 및 배포 전략 (Git/GitHub):**
-  - GitHub Flow 채택, `main` 브랜치 직접 Push 엄격히 금지
-  - 기능 개발 시 반드시 `feature/기능명` 브랜치 생성 후 작업
-  - 모든 코드는 PR(Pull Request)을 통해 병합, 최소 1명 이상의 팀원 리뷰 및 PM의 Approve 필수
+  - `CONTRIBUTING.md` 기준의 Git Flow를 따르며, 기본 작업 브랜치는 `dev`로 운영
+  - 기능/버그/문서 작업은 각각 `feat/기능명`, `bug/버그명`, `docs/문서명` 등 규칙에 맞는 브랜치를 생성 후 진행
+  - 모든 코드는 PR(Pull Request)을 통해 `dev` 브랜치로 병합하며, 최소 1명 이상의 팀원 리뷰 및 PM의 Approve를 필수로 한다
