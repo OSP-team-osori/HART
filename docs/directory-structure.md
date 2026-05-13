@@ -1,3 +1,4 @@
+```text
 Agent-Harness/
 ├── .github/workflows/       # (성현) GitHub Actions CI/CD 파이프라인
 │
@@ -27,3 +28,4 @@ Agent-Harness/
 │   └── dummy_stream.json    # 터미널 실시간 스트림 데이터
 │
 └── README.md                # 📝 (민준) 프로젝트 전체 명세서 및 가이드
+```
