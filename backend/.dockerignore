@@ -1,0 +1,14 @@
+# .dockerignore
+.git
+.gitignore
+.gradle
+build/
+.idea/
+.vscode/
+*.iml
+*.log
+.DS_Store
+.env
+.env.*
+HELP.md
+README*
