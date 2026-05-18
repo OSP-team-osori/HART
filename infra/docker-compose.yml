@@ -3,8 +3,8 @@ services:
     image: postgres:16
     environment:
       POSTGRES_DB: agent_harness
-      POSTGRES_USER: postgres       #후에 .env로 주입해야함
-      POSTGRES_PASSWORD: password   #후에 .env로 주입해야함
+      POSTGRES_USER: postgres       # 후에 .env로 주입해야함
+      POSTGRES_PASSWORD: password   # 후에 .env로 주입해야함
     ports:
       - "5433:5432"        # 호스트 5433 → 컨테이너 5432 (DBeaver 등 외부 접속용)
     volumes:
@@ -21,9 +21,10 @@ services:
     ports:
       - "8090:8090"
     environment:
+      # 컨테이너 간 통신이므로 호스트 포트(5433)가 아닌 내부 포트(5432) 사용
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/agent_harness
-      SPRING_DATASOURCE_USERNAME: postgre    #후에 .env로 주입해야함
-      SPRING_DATASOURCE_PASSWORD: password    #후에 .env로 주입해야함
+      SPRING_DATASOURCE_USERNAME: postgres   # 오타 수정 (postgre -> postgres)
+      SPRING_DATASOURCE_PASSWORD: password   # 후에 .env로 주입해야함
     depends_on:
       postgres:
         condition: service_healthy
