@@ -11,6 +11,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Service
@@ -23,6 +27,45 @@ public class ProcessOrchestratorService {
     // 동시성(Race Condition)을 완벽히 제어하기 위한 Atomic 플래그
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
+    // SSE 구독자 목록 (Thread-Safe)
+    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+
+    /**
+     * 프론트엔드가 실시간 로그를 받기 위해 구독(Subscribe)하는 메서드
+     */
+    public SseEmitter subscribe() {
+        SseEmitter emitter = new SseEmitter(0L); // 0은 타임아웃 없음
+        emitters.add(emitter);
+
+        // 클라이언트 연결 종료 또는 에러 시 안전하게 자원 해제
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onTimeout(() -> emitters.remove(emitter));
+        emitter.onError((e) -> emitters.remove(emitter));
+
+        // 최초 연결 시 상태 메시지 전송
+        try {
+            emitter.send(SseEmitter.event().name("connect").data("Connected to Agent Log Stream"));
+        } catch (IOException e) {
+            emitters.remove(emitter);
+        }
+
+        return emitter;
+    }
+
+    /**
+     * 실행 중인 프로세스의 로그를 구독자들에게 브로드캐스트
+     */
+    private void broadcastLog(String message) {
+        List<SseEmitter> deadEmitters = new java.util.ArrayList<>();
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(SseEmitter.event().name("log").data(message));
+            } catch (Exception e) {
+                deadEmitters.add(emitter);
+            }
+        }
+        emitters.removeAll(deadEmitters);
+    }
     /**
      * 외부에서 비동기로 프로세스를 실행하도록 요청하는 퍼블릭 메서드
      */
@@ -71,6 +114,7 @@ public class ProcessOrchestratorService {
             String line;
             while ((line = reader.readLine()) != null) {
                 log.info("[AGENT LOG] {}", line);
+                broadcastLog(line); // 프론트엔드로 실시간 전송!
             }
         } catch (Exception e) {
             log.error("Error reading process stream", e);
