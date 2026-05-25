@@ -35,6 +35,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 # 1단계 builder에서 생성된 jar 파일을 복사합니다.
