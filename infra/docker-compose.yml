@@ -22,7 +22,7 @@ services:
       - "8090:8090"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/agent_harness
-      SPRING_DATASOURCE_USERNAME: postgre    #후에 .env로 주입해야함
+      SPRING_DATASOURCE_USERNAME: postgres    #후에 .env로 주입해야함
       SPRING_DATASOURCE_PASSWORD: password    #후에 .env로 주입해야함
     depends_on:
       postgres:
