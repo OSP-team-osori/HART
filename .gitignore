@@ -1,0 +1,31 @@
+# =========================
+# HART Project .gitignore
+# =========================
+
+# 1. OS & Editor (운영체제 및 에디터 찌꺼기)
+.DS_Store
+.vscode/
+.idea/
+
+# 2. Python & Aider (AI 에이전트 및 파이썬 캐시)
+__pycache__/
+*.py[cod]
+.aider*
+*.venv/
+venv/
+
+# 3. Java & Spring Boot (백엔드 빌드 결과물)
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+*.class
+
+# 4. Node.js & React/Vue (프론트엔드 패키지)
+node_modules/
+dist/
+.npm/
+
+# 5. Secrets & Environments (보안 및 환경변수 - 매우 중요!)
+.env
+*.env
