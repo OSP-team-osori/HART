@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/v1/agent")
@@ -13,6 +15,10 @@ public class AgentController {
 
     private final ProcessOrchestratorService processOrchestratorService;
 
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamLogs() {
+        return processOrchestratorService.subscribe();
+    }
     @PostMapping("/run-test")
     public ResponseEntity<String> runTestProcess() {
         try {
