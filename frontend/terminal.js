@@ -25,10 +25,10 @@ if (terminalContainer) {
 function renderLog(chunk) {
     if (!terminalContainer) return;
 
-    // chunk에 개행문자(\n)가 있으면 div로 묶어주고, 아니면 span으로 이어붙임
+    // chunk에 개행문자(\n)가 있으면 여러 줄로 나눔
     const lines = chunk.split('\n');
 
-    lines.forEach((line, index) => {
+    lines.forEach((line) => {
         if (line === '') return; // 빈 줄 무시
 
         let colorClass = "text-gray-300"; // 기본 색상
@@ -44,16 +44,12 @@ function renderLog(chunk) {
             colorClass = "text-danger font-bold";
         }
 
-        const logElement = document.createElement('span');
+        // span 대신 div를 사용하여 무조건 새 줄에 추가되도록 강제
+        const logElement = document.createElement('div');
         logElement.textContent = line;
         logElement.className = colorClass;
 
         terminalContainer.appendChild(logElement);
-
-        // 줄바꿈 처리
-        if (index < lines.length - 1 || chunk.endsWith('\n')) {
-            terminalContainer.appendChild(document.createElement('br'));
-        }
     });
 
     // 새 텍스트 추가 후 항상 맨 아래로 자동 스크롤
@@ -64,12 +60,10 @@ function renderLog(chunk) {
 function connectRealBackend() {
     console.log("[Terminal] 백엔드 실시간 연결 시도 중...");
     
-    // 백엔드 개발자님, 파싱 로직이 변경되면 아래 onmessage 내부를 수정해주세요.
+    // 백엔드 개발자님, 파싱 파직이 변경되면 아래 onmessage 내부를 수정해주세요.
     const eventSource = new EventSource(CONFIG.API_URL);
 
     eventSource.onmessage = (event) => {
-        // 예상 응답 포맷: data: {"log": "[INFO] Agent started\n", "type": "info"}
-        // (현재 코드는 mock의 'chunk' 구조를 기준으로 작성됨, 실제 규약에 맞춰 키 이름 수정 필요)
         const data = JSON.parse(event.data);
         renderLog(data.log || data.chunk); 
     };
@@ -85,20 +79,28 @@ async function runMockTerminal() {
     console.log("[Terminal] 더미 데이터 스트리밍 시작...");
     
     try {
-        // 실제 JSON 파일을 불러옵니다 (프론트엔드 서버 환경 필요)
+        // 실제 JSON 파일을 불러옵니다
         const response = await fetch('../mock/dummy_stream.json');
         if (!response.ok) throw new Error("JSON 파일을 찾을 수 없습니다.");
         
-        const dummyStreamData = await response.json();
+        const originalData = await response.json();
+        
+        // 🚀 스크롤 테스트를 위해 데이터를 메모리 상에서 5배로 뻥튀기 (원본 JSON은 수정 안 함)
+        const dummyStreamData = [];
+        for (let i = 0; i < 5; i++) {
+            dummyStreamData.push(...originalData);
+        }
+
         let currentIndex = 0;
 
         function processNextChunk() {
             if (currentIndex >= dummyStreamData.length) {
                 // 스트리밍 종료 시 깜빡이는 커서 시뮬레이션
-                renderLog("\n");
+                const cursorWrap = document.createElement('div');
                 const cursor = document.createElement('span');
                 cursor.className = "blinking-cursor bg-white w-2 h-4 inline-block align-middle ml-2";
-                terminalContainer.appendChild(cursor);
+                cursorWrap.appendChild(cursor);
+                terminalContainer.appendChild(cursorWrap);
                 terminalContainer.scrollTop = terminalContainer.scrollHeight;
                 return;
             }
@@ -107,8 +109,8 @@ async function runMockTerminal() {
             renderLog(data.chunk);
             currentIndex++;
 
-            // delay 값(초)을 밀리초(ms)로 변환하여 다음 청크 예약
-            setTimeout(processNextChunk, data.delay * 1000);
+            // delay 값(초)을 밀리초(ms)로 변환 (빠른 스크롤 테스트를 위해 딜레이를 약간 줄임)
+            setTimeout(processNextChunk, (data.delay * 1000) * 0.5);
         }
 
         // 첫 청크 실행
