@@ -214,35 +214,15 @@
                             <div class="w-2.5 h-2.5 rounded-full bg-secondary/80"></div>
                         </div>
                     </div>
-                    <div
+                    <div id="terminal-content"
                         class="p-5 bg-darker/95 flex-1 overflow-y-auto font-mono text-[17px] leading-relaxed terminal-scroll">
-                        <div class="text-gray-500">> Process started...</div>
-                        <div class="text-gray-500">> Running pytest...</div>
-                        <div class="text-gray-500">> Collecting tests from /src/tests</div>
-                        <div class="text-white mt-2">test_authentication.py::test_login_valid <span
-                                class="text-secondary font-bold">PASSED</span></div>
-                        <div class="text-white">test_authentication.py::test_login_invalid <span
-                                class="text-secondary font-bold">PASSED</span></div>
-                        <div class="text-white">test_validation.py::test_password_strength <span
-                                class="text-secondary font-bold">PASSED</span></div>
-                        <div class="text-white">test_validation.py::test_email_format <span
-                                class="text-secondary font-bold">PASSED</span></div>
-
-                        <div class="text-accent mt-4">===== 4 passed in 12.4s =====</div>
-                        <div class="text-gray-400">Token usage: 4,250 tokens</div>
-                        <div class="text-secondary font-bold mt-1">Status: SUCCESS</div>
-
-                        <div class="text-gray-300 mt-4 flex items-center">
-                            <span class="text-primary font-bold">aider</span><span class="text-white">@</span><span
-                                class="text-secondary font-bold">workspace</span><span
-                                class="text-gray-500 ml-1">~$</span>
-                            <span class="blinking-cursor bg-white w-2 h-4 inline-block align-middle ml-2"></span>
-                        </div>
+                        <!-- terminal.js가 이곳에 로그를 삽입합니다 -->
                     </div>
                 </div>
             </section>
         </div>
     </main>
+    <script src="terminal.js"></script>
 </body>
 
 </html>
