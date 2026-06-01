@@ -27,4 +27,11 @@ public class TaskResult {
     private Long executionTimeMs; // 소요 시간
 
     private Integer tokensUsed; // 토큰 사용량
+
+    private String testStatus; // PASS, FAIL, SKIPPED
+
+    private Double cost; // 사용 비용
+
+    @Column(columnDefinition = "TEXT")
+    private String testSummary; // 검증 결과 요약
 }
