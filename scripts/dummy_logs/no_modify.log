@@ -1,0 +1,36 @@
+No git repo found, create one to track aider's changes (recommended)? (Y)es/(N)o [Yes]: y
+Added .aider* to .gitignore
+Git repository created in /home
+Update git name with: git config user.name "Your Name"
+Update git email with: git config user.email "you@example.com"
+Aider v0.86.2
+Main model: gemini/gemini-3-pro-preview with diff-fenced edit format
+Weak model: gemini/gemini-2.5-flash
+Git repo: .git with 0 files
+Repo-map: using 4096 tokens, auto refresh
+
+https://aider.chat/HISTORY.html#release-notes
+Would you like to see what's new in this version? (Y)es/(N)o [Yes]: n
+
+> 에어컨의 작동 원리에 대해 알려줘
+
+에어컨은 '냉매'라는 물질이 액체에서 기체로, 다시 기체에서 액체로 상태가 변할 때 열을 흡수하고 방출하는 성질을 이용해 실내 온도를 낮춥니다. 이 과정은 주로 4단계를 거쳐 반복됩니다.
+
+1. **압축기 (Compressor - 실외기)**: 기체 상태의 냉매를 강한 압력으로 눌러 '고온 고압'의 기체로 만듭니다.
+2. **응축기 (Condenser - 실외기)**: 고온 고압이 된 기체 냉매가 실외기 팬을 통해 외부 공기와 만나 열을 빼앗기고 식으면서 '액체' 상태로 변합니다. (이때 실외기에서 뜨거운 바람이 나옵니다.)
+3. **팽창밸브 (Expansion Valve)**: 좁은 곳을 통과시켜 냉매의 압력을 확 낮춥니다. 이 과정에서 냉매는 온도가 급격히 떨어지며 증발하기 쉬운 상태가 됩니다.
+4. **증발기 (Evaporator - 실내기)**: 차가워진 액체 냉매가 실내기 내부의 관을 지나면서 실내의 더운 공기로부터 열을 흡수해 '기체'로 증발합니다. 열을 빼앗겨 차가워진 공기를 선풍기(팬)가 실내로 불어넣어 시원하게 만듭니다.
+
+기체가 된 냉매는 다시 압축기로 들어가며 이 사이클이 계속 반복됩니다.
+Tokens: 2.5k sent, 528 received. Cost: $0.01 message, $0.01 session.
+
+> who invented icecream?
+
+The invention of ice cream cannot be attributed to a single person, as it evolved over thousands of years. 
+
+Here is a brief timeline of its origins:
+- **Ancient China (around 200 BC):** The earliest known ice-cream-like food was consumed in China, where a mixture of milk, rice, and spices was packed in snow to freeze.
+- **Ancient Persia, Greece, and Rome:** Leaders like Alexander the Great and Emperor Nero enjoyed snow and ice flavored with honey, fruits, and juices.
+- **Europe (13th to 16th Century):** Marco Polo is often credited with bringing a recipe similar to sherbet from China to Italy. The dessert evolved in Italy and later France, eventually incorporating dairy (milk and cream) during the Renaissance, which led to the modern version of ice cream we know today.
+Tokens: 3.0k sent, 172 received. Cost: $0.0081 message, $0.02 session.
+No changes made.

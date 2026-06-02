@@ -20,11 +20,15 @@ public class AgentController {
         return processOrchestratorService.subscribe();
     }
     @PostMapping("/run-test")
-    public ResponseEntity<String> runTestProcess() {
+    public ResponseEntity<String> runTestProcess(@RequestBody(required = false) java.util.Map<String, String> payload) {
         try {
-            // 안티패턴(new Thread()) 제거: 서비스 단의 ExecutorService 풀을 사용하여 안전하게 비동기 호출
-            processOrchestratorService.executeAsync("cmd.exe", "/c", "ping", "127.0.0.1", "-n", "10"); // 강제 종료 테스트를 위해 10번으로 늘림
-            return ResponseEntity.ok("Test process started asynchronously. Check backend console for logs.");
+            String prompt = (payload != null) ? payload.get("prompt") : null;
+            String targetPrompt = (prompt == null || prompt.trim().isEmpty()) 
+                    ? "scripts/dummy_logs/modify_pass.log" 
+                    : prompt.trim();
+            
+            processOrchestratorService.executeAsync(targetPrompt);
+            return ResponseEntity.ok("Test process started asynchronously with target: " + targetPrompt);
         } catch (IllegalStateException e) {
             // 중복 실행 시 409 Conflict 반환
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
