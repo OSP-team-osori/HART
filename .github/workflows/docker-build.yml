@@ -1,19 +1,19 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
   push:
-    branches: [ "main" ] # 필요에 따라 master 또는 다른 브랜치명으로 수정하세요.
+    branches: [ "main" ] # 필요시 실제 배포용 브랜치명(예: master 등)으로 변경하세요.
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 소스 코드 체크아웃
+      # 1. 전체 소스 코드 체크아웃 (루트 디렉토리 기준)
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Docker Buildx 설정 (멀티 플랫폼 빌드 및 캐싱 지원)
+      # 2. Docker Buildx 설정 (멀티 플랫폼 및 캐싱용)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -24,18 +24,70 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4. Docker 이미지 빌드 및 푸시
-      # compose 파일 기준 context가 .. 이므로, 
-      # GitHub runner의 루트(.)에서 backend/Dockerfile을 사용해 빌드합니다.
-      - name: Build and push backend image
+      # ----------------------------------------------------
+      # [1] Spring Boot Backend App 빌드
+      # 기존 docker-compose에서 context: .. 이었으므로 
+      # 루트(.)를 컨텍스트로 잡고 backend 내부의 Dockerfile을 타겟팅합니다.
+      # ----------------------------------------------------
+      - name: Build and push Backend App
         uses: docker/build-push-action@v5
         with:
-          context: . # 저장소 루트 디렉토리를 빌드 컨텍스트로 지정
-          file: backend/Dockerfile # Dockerfile의 경로
+          context: .
+          file: ./backend/Dockerfile
           push: true
-          # dockerhub-id/repository-name 형식으로 태그를 지정합니다.
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/agent-harness-backend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/agent-harness-backend:${{ github.sha }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/agent-harness-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ----------------------------------------------------
+      # [2] Custom Caddy 빌드
+      # 컨텍스트를 ./infra/caddy 폴더로 정확히 지정합니다.
+      # ----------------------------------------------------
+      - name: Build and push Custom Caddy
+        uses: docker/build-push-action@v5
+        with:
+          context: ./infra/caddy
+          file: ./infra/caddy/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/custom-caddy:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ----------------------------------------------------
+      # [3] Custom Prometheus 빌드
+      # ----------------------------------------------------
+      - name: Build and push Custom Prometheus
+        uses: docker/build-push-action@v5
+        with:
+          context: ./infra/prometheus
+          file: ./infra/prometheus/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/custom-prometheus:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ----------------------------------------------------
+      # [4] Custom Promtail 빌드
+      # ----------------------------------------------------
+      - name: Build and push Custom Promtail
+        uses: docker/build-push-action@v5
+        with:
+          context: ./infra/promtail
+          file: ./infra/promtail/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/custom-promtail:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ----------------------------------------------------
+      # [5] Custom Grafana 빌드 (provisioning 폴더 포함)
+      # ----------------------------------------------------
+      - name: Build and push Custom Grafana
+        uses: docker/build-push-action@v5
+        with:
+          context: ./infra/grafana
+          file: ./infra/grafana/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/custom-grafana:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
