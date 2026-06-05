@@ -2,28 +2,28 @@
 # Caddy 내부에서는 http://로 수신하여 각 컨테이너로 분기합니다.
 
 # 1. 스프링부트 웹 앱
-http://app.yourdomain.com {
+http://app.haedal-sos-man-in-the-mirror.com {
     reverse_proxy app:8090
 }
 
 # 2. 그라파나 대시보드
-http://grafana.yourdomain.com {
+http://grafana.haedal-sos-man-in-the-mirror.com {
     reverse_proxy grafana:3000
 }
 
 # 3. CloudBeaver (DB GUI)
-http://db.yourdomain.com {
+http://db.haedal-sos-man-in-the-mirror.com {
     reverse_proxy cloudbeaver:8978
 }
 
 # 4. Portainer (Docker GUI)
-http://portainer.yourdomain.com {
+http://portainer.haedal-sos-man-in-the-mirror.com {
     # Portainer의 HTTP 기본 포트는 9000입니다.
     reverse_proxy portainer:9000
 }
 
 # 5. Cockpit (호스트 OS 관리툴)
-http://cockpit.yourdomain.com {
+http://cockpit.haedal-sos-man-in-the-mirror.com {
     # 호스트 OS의 9090 포트로 프록시를 보냅니다.
     # Cockpit은 내부적으로 HTTPS를 사용하므로 아래와 같이 안전성 검증 비활성화 설정이 필요할 수 있습니다.
     reverse_proxy host.docker.internal:9090 {
