@@ -6,16 +6,11 @@ FROM amazoncorretto:17 AS builder
 
 WORKDIR /build
 
-# 명시해주신 distributionUrl(9.4.1)을 인식할 수 있도록 Gradle Wrapper 관련 파일을 먼저 복사합니다.
-COPY gradlew ./
-COPY gradle/ gradle/
-
-# Gradle Groovy DSL 설정 파일 복사
-COPY build.gradle settings.gradle ./
-
-# 의존성 라이브러리를 먼저 캐싱하기 위해 의존성만 다운로드 시도 (선택 사항이나 캐시 효율에 좋습니다)
-# 여기서는 소스 코드 복사 전에 실행되도록 구성할 수 있으나, 간결한 처리를 위해 소스코드와 함께 빌드합니다.
-COPY src ./src
+# build context가 repo 루트이므로 backend/ 경로를 명시합니다.
+COPY backend/gradlew ./
+COPY backend/gradle/ gradle/
+COPY backend/build.gradle backend/settings.gradle ./
+COPY backend/src ./src
 
 # gradlew 실행 권한을 부여하고, Gradle 9.4.1을 사용해 Spring Boot 4.0.6 애플리케이션을 빌드합니다.
 RUN chmod +x ./gradlew && ./gradlew bootJar --no-daemon -x test
@@ -40,8 +35,11 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # 1단계 builder에서 생성된 jar 파일을 복사합니다.
-# Gradle 빌드 결과물은 기본적으로 build/libs/ 폴더 아래에 생성됩니다.
 COPY --from=builder /build/build/libs/*.jar app.jar
+
+# Python 래퍼 스크립트 복사 (ProcessOrchestratorService에서 subprocess로 호출)
+COPY backend/run_wrapper.py backend/run_wrapper.py
+COPY scripts/ scripts/
 
 # [옵션 A] 빌드된 스프링 부트 애플리케이션을 컨테이너 실행 시 구동하려는 경우
 ENTRYPOINT ["java", "-jar", "app.jar"]

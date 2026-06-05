@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 @RestController
 @RequestMapping("/api/v1/agent")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class AgentController {
 
     private final ProcessOrchestratorService processOrchestratorService;

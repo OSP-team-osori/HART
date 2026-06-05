@@ -17,13 +17,15 @@ services:
 
   app:
     build:
-      context: ../backend
+      context: ..
+      dockerfile: backend/Dockerfile
     ports:
       - "8090:8090"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/agent_harness
       SPRING_DATASOURCE_USERNAME: postgres    #후에 .env로 주입해야함
       SPRING_DATASOURCE_PASSWORD: password    #후에 .env로 주입해야함
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
