@@ -1,47 +1,189 @@
+version: '3.8'
+
 services:
+  # ----------------------------------------------------
+  # [1] Database & Application
+  # ----------------------------------------------------
   postgres:
     image: postgres:16
+    container_name: postgres
     environment:
       POSTGRES_DB: agent_harness
-      POSTGRES_USER: postgres       #후에 .env로 주입해야함
-      POSTGRES_PASSWORD: password   #후에 .env로 주입해야함
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
-      - "5433:5432"        # 호스트 5433 → 컨테이너 5432 (DBeaver 등 외부 접속용)
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d agent_harness"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d agent_harness"]
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - app-network
 
   app:
-    build:
-      context: ..
-      dockerfile: backend/Dockerfile
-    ports:
-      - "8090:8090"
+    image: ${DOCKERHUB_USERNAME}/agent-harness-backend:latest
+    container_name: springboot-app
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/agent_harness
-      SPRING_DATASOURCE_USERNAME: postgres    #후에 .env로 주입해야함
-      SPRING_DATASOURCE_PASSWORD: password    #후에 .env로 주입해야함
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-password}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - app-network
 
-  grafana:
-    image: grafana/grafana:latest
+  # ----------------------------------------------------
+  # [2] Gateway & Network (Caddy & Cloudflare)
+  # ----------------------------------------------------
+  caddy:
+    image: ${DOCKERHUB_USERNAME}/custom-caddy:latest # ◀ 커스텀 이미지로 변경
+    container_name: caddy
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "80:80"
+    volumes:
+      # Caddyfile 마운트는 제거하고, 인증서 및 임시 설정 저장용 볼륨만 남겨둡니다.
+      - caddy_data:/data
+      - caddy_config:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
+    depends_on:
+      - caddy
+    networks:
+      - app-network
+
+  # ----------------------------------------------------
+  # [3] Monitoring & Logging (Grafana Stack)
+  # ----------------------------------------------------
+  grafana:
+    image: ${DOCKERHUB_USERNAME}/custom-grafana:latest # ◀ 커스텀 이미지로 변경
+    container_name: grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
     volumes:
+      # 프로비저닝 파일(Cody) 마운트는 제거하고, 대시보드 저장용 데이터 볼륨만 남깁니다.
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - postgres
+      - prometheus
+      - loki
+    networks:
+      - app-network
+
+  prometheus:
+    image: ${DOCKERHUB_USERNAME}/custom-prometheus:latest # ◀ 커스텀 이미지로 변경
+    container_name: prometheus
+    volumes:
+      # prometheus.yml 마운트 제거
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - app-network
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app-network
+
+  promtail:
+    image: ${DOCKERHUB_USERNAME}/custom-promtail:latest # ◀ 커스텀 이미지로 변경
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # promtail-config.yml 마운트 제거
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - app-network
+
+  # ----------------------------------------------------
+  # [4] Metrics Exporters & Web Tools
+  # ----------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+    networks:
+      - app-network
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/agent_harness?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    networks:
+      - app-network
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
+    container_name: cloudbeaver
+    volumes:
+      - cloudbeaver-data:/opt/cloudbeaver/workspace
+    networks:
+      - app-network
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   pgdata:
   grafana-data:
+  prometheus-data:
+  cloudbeaver-data:
+  portainer-data:
+  caddy_data:
+  caddy_config:
