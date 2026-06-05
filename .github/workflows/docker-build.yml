@@ -1,0 +1,41 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ "main" ] # 필요에 따라 master 또는 다른 브랜치명으로 수정하세요.
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 소스 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Docker Buildx 설정 (멀티 플랫폼 빌드 및 캐싱 지원)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. Docker Hub 로그인
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4. Docker 이미지 빌드 및 푸시
+      # compose 파일 기준 context가 .. 이므로, 
+      # GitHub runner의 루트(.)에서 backend/Dockerfile을 사용해 빌드합니다.
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: . # 저장소 루트 디렉토리를 빌드 컨텍스트로 지정
+          file: backend/Dockerfile # Dockerfile의 경로
+          push: true
+          # dockerhub-id/repository-name 형식으로 태그를 지정합니다.
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/agent-harness-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/agent-harness-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
