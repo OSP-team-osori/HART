@@ -135,10 +135,10 @@ public class ProcessOrchestratorService {
             // PM 민준님이 작성한 run_wrapper.py는 그대로 완전 블랙박스로 보존하고,
             // 모의 시뮬레이터인 scripts/agent_wrapper.py --mock 을 통해 완벽히 오프라인 격리 검증을 수행합니다!
             if (prompt.endsWith(".log")) {
-                processBuilder = new ProcessBuilder("python", "scripts/agent_wrapper.py", "--mock", prompt);
+                processBuilder = new ProcessBuilder("python3", "scripts/agent_wrapper.py", "--mock", prompt);
                 log.info("Starting Mock offline simulation via agent_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             } else {
-                processBuilder = new ProcessBuilder("python", "backend/run_wrapper.py", prompt);
+                processBuilder = new ProcessBuilder("python3", "backend/run_wrapper.py", prompt);
                 log.info("Starting Real online agent trigger via run_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             }
 

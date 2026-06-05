@@ -65,14 +65,14 @@ function connectRealBackend() {
 
     const eventSource = new EventSource(CONFIG.API_URL);
 
-    // 백엔드가 name("log")로 전송하므로 addEventListener 사용
     eventSource.addEventListener("log", (event) => {
         renderLog(event.data);
     });
 
     eventSource.onerror = () => {
-        renderLog("\n[ERROR] 서버와의 연결이 끊어졌습니다. (CORS 허용 여부 또는 백엔드 상태를 확인해주세요)\n");
         eventSource.close();
+        renderLog("\n[WARN] 서버 연결이 끊어졌습니다. 3초 후 재연결 시도...\n");
+        setTimeout(connectRealBackend, 3000);
     };
 }
 
@@ -156,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     body: JSON.stringify({ prompt: promptText })
                 });
 
+                if (response.status === 409) throw new Error("이미 에이전트가 실행 중입니다. 완료 후 다시 시도해주세요.");
                 if (!response.ok) throw new Error("서버 연동 실패");
 
                 console.log("[Terminal] 작업 지시 성공! 스트리밍 응답 대기 중...");
@@ -163,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             } catch (error) {
                 console.error(error);
-                alert("백엔드 서버로 명령을 전송할 수 없습니다. CORS 확장 프로그램이 켜져 있는지 확인해주세요.");
+                alert(error.message || "백엔드 서버로 명령을 전송할 수 없습니다.");
             } finally {
                 // 처리가 끝나면 버튼 원상복구
                 runBtn.innerText = "Run Agent";
