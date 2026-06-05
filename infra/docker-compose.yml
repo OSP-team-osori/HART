@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: agent_harness
+      POSTGRES_USER: postgres       #후에 .env로 주입해야함
+      POSTGRES_PASSWORD: password   #후에 .env로 주입해야함
+    ports:
+      - "5433:5432"        # 호스트 5433 → 컨테이너 5432 (DBeaver 등 외부 접속용)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d agent_harness"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/agent_harness
+      SPRING_DATASOURCE_USERNAME: postgres    #후에 .env로 주입해야함
+      SPRING_DATASOURCE_PASSWORD: password    #후에 .env로 주입해야함
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+  grafana-data:
