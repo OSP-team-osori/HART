@@ -6,31 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HART TADD - AI Agent Control Platform</title>
 
-    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- FontAwesome & Web Fonts -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-gov.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-    <!-- Chart.js (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Tailwind Config -->
     <script src="tailwind-config.js"></script>
 
-    <!-- Custom CSS -->
     <link href="styles.css" rel="stylesheet">
 </head>
 
 <body class="flex h-screen overflow-hidden text-[24px]">
 
-    <!-- Left Sidebar: Multi-Agent Fleet -->
     <aside
         class="hidden lg:flex flex-col w-[400px] sidebar-glass shrink-0 relative z-20 shadow-xl border-r border-white/5">
-        <!-- Logo Area -->
         <div class="h-20 flex items-center px-6 border-b border-white/5">
             <div class="flex items-center gap-3">
                 <div
@@ -46,7 +39,6 @@
             </div>
         </div>
 
-        <!-- Fleet Navigation -->
         <nav class="flex-1 overflow-y-auto py-6 px-4">
             <div class="flex justify-between items-center px-2 mb-4">
                 <h3 class="text-[16px] font-semibold text-gray-500 uppercase tracking-wider">Agent Fleet</h3>
@@ -56,7 +48,6 @@
             </div>
 
             <ul class="space-y-4">
-                <!-- Active Agent -->
                 <li>
                     <button
                         class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(79,70,229,0.1)] group relative overflow-hidden transition-all">
@@ -74,7 +65,6 @@
                     </button>
                 </li>
 
-                <!-- Dummy Agent -->
                 <li>
                     <button
                         class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-not-allowed group">
@@ -90,7 +80,6 @@
                     </button>
                 </li>
 
-                <!-- Dummy Agent -->
                 <li>
                     <button
                         class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-not-allowed group">
@@ -108,7 +97,6 @@
             </ul>
         </nav>
 
-        <!-- Bottom Settings -->
         <div class="p-4 border-t border-white/5">
             <button
                 class="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-darker/50 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5 text-[18px] font-semibold">
@@ -117,13 +105,10 @@
         </div>
     </aside>
 
-    <!-- Main Content Area -->
     <main class="flex-1 flex flex-col h-screen relative">
 
-        <!-- Scrollable Content -->
         <div class="flex-1 overflow-y-auto p-8 pt-6 pb-12 flex flex-col gap-8 terminal-scroll relative z-10">
 
-            <!-- Header: Agent Name + Status Badge -->
             <div class="flex items-center gap-6 mt-4 shrink-0">
                 <h1 class="text-[40px] font-medium text-white tracking-wide">Agent Name</h1>
                 <div class="border border-gray-400 text-gray-200 rounded-full px-5 py-1.5 text-[18px]">
@@ -131,10 +116,8 @@
                 </div>
             </div>
 
-            <!-- Command Prompt (left) + Metrics 2x2 (right) -->
             <section class="grid grid-cols-7 gap-6 shrink-0">
 
-                <!-- Command Prompt: spans left column (col-span-1, row-span-2 height) -->
                 <div class="glass-panel rounded-xl p-5 relative overflow-hidden col-span-3 flex flex-col"
                     style="min-height: 340px;">
                     <div class="flex items-center justify-between mb-3">
@@ -147,16 +130,17 @@
                     </div>
                     <div class="relative flex-1 flex flex-col">
                         <textarea
+                            id="prompt-input"
                             class="w-full flex-1 bg-darker/60 border border-white/10 rounded-lg p-4 text-[18px] font-mono text-gray-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none transition-all placeholder-gray-600 shadow-inner"
                             placeholder="e.g., Implement password validation logic..."></textarea>
                         <button
+                            id="run-btn"
                             class="absolute bottom-3 right-3 bg-gradient-to-r from-primary to-indigo-600 hover:from-indigo-500 hover:to-primary text-white px-6 py-2 rounded-md text-[18px] font-semibold transition-all shadow-lg shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0">
                             Run Agent
                         </button>
                     </div>
                 </div>
 
-                <!-- Metrics 2x2 grid: spans right 2 columns -->
                 <div class="col-span-4 grid grid-cols-2 grid-rows-2 gap-6">
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
@@ -196,7 +180,6 @@
 
             </section>
 
-            <!-- Virtual Terminal (full width) -->
             <section class="flex-1 min-h-[300px] flex flex-col">
                 <div
                     class="glass-panel rounded-xl flex flex-col h-full overflow-hidden border border-secondary/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
@@ -216,8 +199,7 @@
                     </div>
                     <div id="terminal-content"
                         class="p-5 bg-darker/95 flex-1 overflow-y-auto font-mono text-[17px] leading-relaxed terminal-scroll">
-                        <!-- terminal.js가 이곳에 로그를 삽입합니다 -->
-                    </div>
+                        </div>
                 </div>
             </section>
         </div>
