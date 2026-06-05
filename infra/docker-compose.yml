@@ -1,4 +1,4 @@
-#version: '3.8'
+version: '3.8'
 
 services:
   # ----------------------------------------------------
@@ -12,7 +12,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
-      - "5433:5432" # DBeaver 등 외부 직접 접속용 (필요 없으면 제거 가능)
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -41,17 +41,17 @@ services:
   # [2] Gateway & Network (Caddy & Cloudflare)
   # ----------------------------------------------------
   caddy:
-    image: caddy:latest
+    image: ${DOCKERHUB_USERNAME}/custom-caddy:latest # ◀ 커스텀 이미지로 변경
     container_name: caddy
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      # Caddyfile 마운트는 제거하고, 인증서 및 임시 설정 저장용 볼륨만 남겨둡니다.
       - caddy_data:/data
       - caddy_config:/config
     extra_hosts:
-      - "host.docker.internal:host-gateway" # 호스트 OS에서 작동 중인 Cockpit(9090) 연결용
+      - "host.docker.internal:host-gateway"
     networks:
       - app-network
 
@@ -60,7 +60,7 @@ services:
     container_name: cloudflared
     restart: unless-stopped
     environment:
-      - TUNNEL_TOKEN=${TUNNEL_TOKEN} # Cloudflare Zero Trust 대시보드에서 발급받은 토큰
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
     command: tunnel --no-autoupdate run
     depends_on:
       - caddy
@@ -71,13 +71,13 @@ services:
   # [3] Monitoring & Logging (Grafana Stack)
   # ----------------------------------------------------
   grafana:
-    image: grafana/grafana:latest
+    image: ${DOCKERHUB_USERNAME}/custom-grafana:latest # ◀ 커스텀 이미지로 변경
     container_name: grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
     volumes:
+      # 프로비저닝 파일(Cody) 마운트는 제거하고, 대시보드 저장용 데이터 볼륨만 남깁니다.
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - postgres
       - prometheus
@@ -86,10 +86,10 @@ services:
       - app-network
 
   prometheus:
-    image: prom/prometheus:latest
+    image: ${DOCKERHUB_USERNAME}/custom-prometheus:latest # ◀ 커스텀 이미지로 변경
     container_name: prometheus
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      # prometheus.yml 마운트 제거
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -105,18 +105,18 @@ services:
       - app-network
 
   promtail:
-    image: grafana/promtail:3.0.0
+    image: ${DOCKERHUB_USERNAME}/custom-promtail:latest # ◀ 커스텀 이미지로 변경
     container_name: promtail
     volumes:
       - /var/log:/var/log:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro # 컨테이너 로그 수집용
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # promtail-config.yml 마운트 제거
     command: -config.file=/etc/promtail/config.yml
     networks:
       - app-network
 
   # ----------------------------------------------------
-  # [4] Metrics Exporters
+  # [4] Metrics Exporters & Web Tools
   # ----------------------------------------------------
   node-exporter:
     image: prom/node-exporter:latest
@@ -129,7 +129,6 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - app-network
 
@@ -158,10 +157,7 @@ services:
     networks:
       - app-network
 
-  # ----------------------------------------------------
-  # [5] Web Tools & Admin
-  # ----------------------------------------------------
-  cloudbeaver: # 웹 기반 DB 클라이언트
+  cloudbeaver:
     image: dbeaver/cloudbeaver:latest
     container_name: cloudbeaver
     volumes:
@@ -169,7 +165,7 @@ services:
     networks:
       - app-network
 
-  portainer: # 웹 기반 도커 관리 툴
+  portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
     restart: always
