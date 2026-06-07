@@ -3,6 +3,7 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [ "main" ] # 필요시 실제 배포용 브랜치명(예: master 등)으로 변경하세요.
+  workflow_dispatch: # 수동 트리거 허용
 
 jobs:
   build-and-push:
