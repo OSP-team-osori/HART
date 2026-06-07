@@ -31,7 +31,7 @@ def run_harness_pipeline(prompt):
     # 피드백 1 & 3 반영: 콤마 추가 및 실시간 스트리밍을 위해 Popen 사용
     aider_cmd = [
         "aider", 
-        "--model", "gemini/gemini-1.5-pro", 
+        "--model", "gemini", 
         "--message", prompt, 
         "--stream", 
         "--no-pretty",
