@@ -120,6 +120,22 @@ public class ProcessOrchestratorService {
         int exitCode = -1;
         String lastLine = null;
         try {
+
+            // 1. Task 전용 새 디렉토리 경로 설정 및 생성 (예: 프로젝트루트/tasks/task_1)
+            File baseDir = getProjectRootDir();
+            File taskDir = new File(baseDir, "workspace");
+        
+            if (!taskDir.exists()) {
+                taskDir.mkdirs(); // 새 디렉토리 생성
+                log.info("새 작업 디렉토리가 생성되었습니다: {}", taskDir.getAbsolutePath());
+
+                // 2. 새 디렉토리에서 git init 실행
+                ProcessBuilder gitInitPb = new ProcessBuilder("git", "init");
+                gitInitPb.directory(taskDir); // 실행 위치를 새로 만든 폴더로 지정
+                Process gitProcess = gitInitPb.start();
+                gitProcess.waitFor(); // git init이 끝날 때까지 대기
+                log.info("해당 디렉토리에 git init을 완료했습니다.");
+            }
             // PM이 구현한 backend/run_wrapper.py 파이썬 비서 단독 프로세스 실행
             // 프롬프트를 인자로 실어서 래퍼를 띄웁니다.
             String prompt = String.join(" ", command);
@@ -142,9 +158,11 @@ public class ProcessOrchestratorService {
                 log.info("Starting Real online agent trigger via run_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             }
 
-            processBuilder.directory(getProjectRootDir());
-            processBuilder.redirectErrorStream(true); // 에러 스트림을 표준 출력으로 병합
+            processBuilder.directory(taskDir); 
+
+            processBuilder.redirectErrorStream(true);
             processBuilder.environment().put("PYTHONUNBUFFERED", "1");
+
 
             currentProcess = processBuilder.start();
 
