@@ -1,7 +1,24 @@
-# 1. 메인 앱 (Spring Boot Backend)
-# 예: api.yourdomain.com으로 접속 시
+# 1. 메인 앱 (Spring Boot Backend + Vanilla JS Frontend)
 http://app.haedal-sos-man-in-the-mirror.com {
-    reverse_proxy springboot-app:8080
+    # API 요청을 구분하는 매처
+    @backend_routes {
+        path /api/*
+    }
+
+    # API 요청은 백엔드 컨테이너로 프록시
+    # (주의: 이전 docker-compose.yml에는 이름이 'app'이었는데, 여기서는 'springboot-app'으로 되어 있습니다. 
+    # 실제 docker-compose의 백엔드 서비스 이름에 맞게 수정해 주세요. 예: app:8080)
+    handle @backend_routes {
+        reverse_proxy app:8090
+    }
+
+    # 나머지 모든 요청은 프론트엔드 정적 파일 서빙
+    handle {
+        # docker-compose.yml에서 마운트한 내부 경로
+        root * /var/www/frontend
+        file_server
+    }
+    rewrite / /AgentView.html
 }
 
 # 2. 그라파나 (모니터링)
