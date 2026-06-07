@@ -8,7 +8,7 @@ const CONFIG = {
     // ✅ 실제 백엔드와 통신하기 위해 false로 유지
     USE_MOCK: false,
     // ✅ 백엔드 SSE 스트리밍 엔드포인트 주소 고정 (8090 포트)
-    API_URL: 'http://localhost:8090/api/v1/agent/stream'
+    API_URL: '/api/v1/agent/stream'
 };
 
 // 1. DOM 요소 선택
@@ -148,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 // ✅ 프롬프트를 8090 백엔드 포트로 발사!
-                const response = await fetch('http://localhost:8090/api/v1/agent/run-test', {
+                const response = await fetch('/api/v1/agent/run-test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
