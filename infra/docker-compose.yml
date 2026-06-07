@@ -136,6 +136,7 @@ services:
   # ====================================================
   # [5] 라우팅 / 프록시 / 터널
   # ====================================================
+
   caddy:
     image: caddy:latest
     container_name: caddy
@@ -143,11 +144,13 @@ services:
       - "80:80"
     volumes:
       - ./config/Caddyfile:/etc/caddy/Caddyfile
+      # 👇 infra 폴더 기준 상위 폴더의 frontend를 컨테이너 내부로 마운트
+      - ../frontend:/var/www/frontend 
       - caddy_data:/data
       - caddy_config:/config
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on: # ◀ 컨디션이 없는 애들은 이렇게 전체 리스트('-') 방식 사용 가능 (정상)
+    depends_on:
       - app
       - grafana
       - portainer
