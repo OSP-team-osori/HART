@@ -1,0 +1,27 @@
+# 1. 메인 앱 (Spring Boot Backend)
+# 예: api.yourdomain.com으로 접속 시
+http://app.haedal-sos-man-in-the-mirror.com {
+    reverse_proxy springboot-app:8080
+}
+
+# 2. 그라파나 (모니터링)
+http://grafana.haedal-sos-man-in-the-mirror.com {
+    reverse_proxy grafana:3000
+}
+
+# 3. 포르테이너 (도커 관리)
+http://portainer.haedal-sos-man-in-the-mirror.com {
+    reverse_proxy portainer:9000 { 
+        header_up X-Forwarded-Proto https
+     }
+}
+
+# 4. 클라우드비버 (DB 관리, 기본 포트 8978)
+http://db.haedal-sos-man-in-the-mirror.com {
+    reverse_proxy cloudbeaver:8978
+}
+
+# 5. 지정되지 않은 요청 방어용
+:80 {
+    respond "Service Not Found" 404
+}
