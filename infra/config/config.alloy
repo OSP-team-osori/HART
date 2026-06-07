@@ -1,0 +1,98 @@
+// ==========================================
+// 1. 목적지 설정 (Prometheus, Loki)
+// ==========================================
+prometheus.remote_write "default" {
+    endpoint {
+        url = "http://prometheus:9090/api/v1/write"
+    }
+}
+
+loki.write "default" {
+    endpoint {
+        url = "http://loki:3100/loki/api/v1/push"
+    }
+}
+
+// ==========================================
+// 2. OTLP 수신 (Spring Boot가 Push하는 데이터)
+// ==========================================
+otelcol.receiver.otlp "default" {
+    grpc { endpoint = "0.0.0.0:4317" }
+    http { endpoint = "0.0.0.0:4318" }
+
+    output {
+        metrics = [otelcol.exporter.prometheus.default.input]
+        logs    = [otelcol.exporter.loki.default.input]
+    }
+}
+
+otelcol.exporter.prometheus "default" {
+    forward_to = [prometheus.remote_write.default.receiver]
+}
+otelcol.exporter.loki "default" {
+    forward_to = [loki.write.default.receiver]
+}
+
+// ==========================================
+// 3. 내장 Exporter 수집
+// ==========================================
+// [3-1] Node Exporter (서버 상태) - ◀ 수정됨: 호스트 마운트 경로 지정
+prometheus.exporter.unix "default" { 
+    rootfs_path = "/root"
+    sysfs_path  = "/sys"
+    procfs_path = "/proc"
+}
+prometheus.scrape "unix" {
+    targets    = prometheus.exporter.unix.default.targets
+    forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// [3-2] cAdvisor (도커 컨테이너 메트릭)
+prometheus.exporter.cadvisor "default" {
+    docker_host = "unix:///var/run/docker.sock"
+    docker_only = true             // ◀ [추가] 시스템 프로세스(system.slice 등) 무시하고 도커만 수집!
+    store_container_labels = true  // ◀ [추가] 컨테이너 이름, 라벨 등의 텍스트 정보 저장!
+}
+prometheus.scrape "cadvisor" {
+    targets    = prometheus.exporter.cadvisor.default.targets
+    forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// [3-3] Postgres Exporter (DB 메트릭)
+prometheus.exporter.postgres "default" {
+    data_source_names = ["postgresql://postgres:password@postgres:5432/agent_harness?sslmode=disable"]
+}
+prometheus.scrape "postgres" {
+    targets    = prometheus.exporter.postgres.default.targets
+    forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// ==========================================
+// 4. Docker 로그 수집 (Promtail 대체)
+// ==========================================
+discovery.docker "local" {
+    host = "unix:///var/run/docker.sock"
+}
+
+// ◀ 추가됨: 그라파나에서 보기 편하게 라벨을 예쁘게 다듬어주는 규칙
+discovery.relabel "docker" {
+    targets = discovery.docker.local.targets
+
+    // 도커 컨테이너 이름을 'container' 라벨로 지정 (예: "/alloy" -> "alloy")
+    rule {
+        source_labels = ["__meta_docker_container_name"]
+        regex         = "/(.*)"
+        target_label  = "container"
+    }
+    // 도커 컴포즈 서비스 이름을 'job' 라벨로 지정 (예: "postgres")
+    rule {
+        source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label  = "job"
+    }
+}
+
+loki.source.docker "default" {
+    host       = "unix:///var/run/docker.sock"
+    targets    = discovery.relabel.docker.output  // ◀ 수정됨: 가공된 타겟 사용
+    forward_to = [loki.write.default.receiver]
+}

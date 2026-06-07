@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # 프로메테우스 자기 자신 상태 수집
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
