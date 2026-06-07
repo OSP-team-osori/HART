@@ -121,7 +121,7 @@ public class ProcessOrchestratorService {
         String lastLine = null;
         try {
 
-            // 1. Task 전용 새 디렉토리 경로 설정 및 생성 (예: 프로젝트루트/tasks/task_1)
+            // 1. Task 전용 새 디렉토리 경로 설정 및 생성 (예: 프로젝트루트/workspace)
             File baseDir = getProjectRootDir();
             File taskDir = new File(baseDir, "workspace");
         
@@ -136,33 +136,35 @@ public class ProcessOrchestratorService {
                 gitProcess.waitFor(); // git init이 끝날 때까지 대기
                 log.info("해당 디렉토리에 git init을 완료했습니다.");
             }
-            // PM이 구현한 backend/run_wrapper.py 파이썬 비서 단독 프로세스 실행
-            // 프롬프트를 인자로 실어서 래퍼를 띄웁니다.
+
+            // PM이 구현한 파이썬 비서 단독 프로세스 실행
             String prompt = String.join(" ", command);
             
-            // 만약 ping 명령이나 API 기본 인자가 들어오면 실전 테스트 검증을 위해 
-            // "그냥 인사만 해줘" 등의 프롬프트로 유연하게 보정하여 래퍼를 호출할 수 있게 합니다.
+            // [수정 포인트 1] 로그 파일의 경로를 절대 경로로 변환합니다.
             if (prompt.contains("ping") || prompt.isEmpty()) {
-                prompt = "scripts/dummy_logs/modify_pass.log";
+                File dummyLog = new File(baseDir, "scripts/dummy_logs/modify_pass.log");
+                prompt = dummyLog.getAbsolutePath(); 
             }
 
             ProcessBuilder processBuilder;
-            // 입력된 프롬프트가 .log 파일 경로인 경우, 
-            // PM 민준님이 작성한 run_wrapper.py는 그대로 완전 블랙박스로 보존하고,
-            // 모의 시뮬레이터인 scripts/agent_wrapper.py --mock 을 통해 완벽히 오프라인 격리 검증을 수행합니다!
+            
+            // [수정 포인트 2] 실행할 파이썬 스크립트의 경로를 baseDir을 이용해 절대 경로로 지정합니다.
             if (prompt.endsWith(".log")) {
-                processBuilder = new ProcessBuilder("python3", "scripts/agent_wrapper.py", "--mock", prompt);
+                File scriptFile = new File(baseDir, "scripts/agent_wrapper.py");
+                processBuilder = new ProcessBuilder("python3", scriptFile.getAbsolutePath(), "--mock", prompt);
                 log.info("Starting Mock offline simulation via agent_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             } else {
-                processBuilder = new ProcessBuilder("python3", "backend/run_wrapper.py", prompt);
+                File scriptFile = new File(baseDir, "backend/run_wrapper.py");
+                processBuilder = new ProcessBuilder("python3", scriptFile.getAbsolutePath(), prompt);
                 log.info("Starting Real online agent trigger via run_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             }
 
+            // [핵심 유지] 실행 위치(Current Working Directory)는 workspace로 지정!
+            // 파이썬 파일은 절대경로로 가져와서 실행하지만, 파이썬이 생성/수정하는 파일들은 모두 taskDir(workspace) 안에 생깁니다.
             processBuilder.directory(taskDir); 
 
             processBuilder.redirectErrorStream(true);
             processBuilder.environment().put("PYTHONUNBUFFERED", "1");
-
 
             currentProcess = processBuilder.start();
 
