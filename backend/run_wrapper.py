@@ -28,11 +28,12 @@ def extract_metrics(log_text):
     return total_tokens, final_cost
 
 def run_harness_pipeline(prompt):
-    # 피드백 1 & 3 반영: 콤마 추가 및 실시간 스트리밍을 위해 Popen 사용
+    augmented_prompt = prompt + "\n\n만약 파이썬 파일을 수정하거나 생성할시 tests/test_solution.py 에 먼저 코드에 대한 pytest 테스트도 함께 작성해주세요."
+
     aider_cmd = [
-        "aider", 
-        "--model", "gemini", 
-        "--message", prompt, 
+        "aider",
+        "--model", "gemini",
+        "--message", augmented_prompt,
         "--stream", 
         "--no-pretty",
         "--yes"
