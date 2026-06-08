@@ -67,6 +67,8 @@ function connectRealBackend() {
 
     eventSource.addEventListener("log", (event) => {
         renderLog(event.data);
+        // 결과 JSON이 감지되면 stat 카드를 실제 값으로 갱신한다
+        detectAndApplyResult(event.data);
     });
 
     eventSource.onerror = () => {
@@ -119,6 +121,110 @@ async function runMockTerminal() {
     }
 }
 
+// ============================================================================
+// 5. 실행 결과 감지 및 Stats 카드 업데이트 모듈
+// SSE 스트림의 마지막 라인이 결과 JSON이면 파싱하여 stat 카드에 반영한다.
+// 백엔드 ProcessOrchestratorService.broadcastLog()가 전송하는 JSON을 활용한다.
+// 결과 JSON 필드: test_status, total_tokens, cost, test_summary
+// ============================================================================
+
+// 프론트엔드 기준 실행 시작 시각 (Run Agent 클릭 시 기록)
+let executionStartTime = null;
+
+/**
+ * SSE log 데이터에서 결과 JSON을 감지하고, stat 카드에 실제 값을 반영한다.
+ * JSON이 아니거나 파싱에 실패하면 아무 동작도 하지 않는다.
+ */
+function detectAndApplyResult(data) {
+    const result = tryParseResultJson(data);
+    if (!result) return;
+
+    const elapsedMs = executionStartTime ? Date.now() - executionStartTime : null;
+    updateStatCards(result, elapsedMs);
+    executionStartTime = null;
+}
+
+/**
+ * 문자열이 결과 JSON인지 판별하고 파싱을 시도한다.
+ * 결과 JSON에는 반드시 test_status 필드가 포함되어야 한다.
+ * @param {string} data - SSE log 이벤트의 data 값
+ * @returns {Object|null} 결과 객체 또는 null
+ */
+function tryParseResultJson(data) {
+    const trimmed = data.trim();
+    if (!trimmed.startsWith('{')) return null;
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.test_status) return parsed;
+        return null;
+    } catch (e) {
+        console.warn('[Stats] JSON 파싱 실패:', e.message);
+        return null;
+    }
+}
+
+/**
+ * stat 카드 DOM 요소를 실제 결과 값으로 일괄 갱신한다.
+ * @param {Object} result - 결과 JSON (test_status, total_tokens, cost 포함)
+ * @param {number|null} elapsedMs - 실행 소요 시간(ms), 측정 불가 시 null
+ */
+function updateStatCards(result, elapsedMs) {
+    updateTestResult(result.test_status);
+    updateExecutionTime(elapsedMs);
+    updateTokenCost(result.total_tokens);
+}
+
+/**
+ * Test Result 카드를 갱신한다.
+ * PASS/SKIPPED이면 녹색(secondary), FAIL이면 빨간색(danger)으로 표시한다.
+ */
+function updateTestResult(testStatus) {
+    const el = document.getElementById('stat-test-result');
+    if (!el) return;
+
+    const status = testStatus.toUpperCase();
+    const isPass = (status === 'PASS' || status === 'SKIPPED');
+
+    el.textContent = status;
+    el.className = isPass
+        ? 'text-[34px] font-bold text-secondary'
+        : 'text-[34px] font-bold text-danger';
+}
+
+/**
+ * Execution Time 카드를 갱신한다.
+ * 밀리초를 초 단위(소수점 1자리)로 변환하여 표시한다.
+ */
+function updateExecutionTime(elapsedMs) {
+    const el = document.getElementById('stat-execution-time');
+    if (!el) return;
+
+    if (elapsedMs == null) {
+        el.innerHTML = '--<span class="text-[22px] text-gray-500">s</span>';
+        return;
+    }
+
+    const seconds = (elapsedMs / 1000).toFixed(1);
+    el.innerHTML = seconds + '<span class="text-[22px] text-gray-500">s</span>';
+}
+
+/**
+ * Token Cost 카드를 갱신한다.
+ * 숫자를 천 단위 콤마 포맷으로 변환하여 표시한다.
+ */
+function updateTokenCost(totalTokens) {
+    const el = document.getElementById('stat-token-cost');
+    if (!el) return;
+
+    if (totalTokens == null) {
+        el.textContent = '--';
+        return;
+    }
+
+    el.textContent = Number(totalTokens).toLocaleString();
+}
+
 // 5. 엔트리 포인트 및 POST 버튼 로직
 document.addEventListener("DOMContentLoaded", () => {
     // 백엔드 스트리밍 채널 활성화
@@ -160,6 +266,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!response.ok) throw new Error("서버 연동 실패");
 
                 console.log("[Terminal] 작업 지시 성공! 스트리밍 응답 대기 중...");
+                // 실행 시간 측정을 위해 시작 시각 기록
+                executionStartTime = Date.now();
                 promptInput.value = ''; // 입력창 비우기
 
             } catch (error) {
