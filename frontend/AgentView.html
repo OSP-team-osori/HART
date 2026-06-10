@@ -25,7 +25,7 @@
     <aside
         class="hidden lg:flex flex-col w-[400px] sidebar-glass shrink-0 relative z-20 shadow-xl border-r border-white/5">
         <div class="h-20 flex items-center px-6 border-b border-white/5">
-            <div class="flex items-center gap-3">
+            <div onclick="location.href='Dashboard.html'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
                 <div
                     class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
                     <i class="fa-solid fa-microchip text-white text-[22px]"></i>
@@ -66,8 +66,8 @@
                 </li>
 
                 <li>
-                    <button
-                        class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-not-allowed group">
+                    <button onclick="location.href='AgentView-dummy.html'"
+                        class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-pointer group">
                         <div class="flex items-center justify-between w-full mb-1">
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-gray-600 rounded-full"></div>
@@ -81,8 +81,8 @@
                 </li>
 
                 <li>
-                    <button
-                        class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-not-allowed group">
+                    <button onclick="location.href='AgentView-dummy.html'"
+                        class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-pointer group">
                         <div class="flex items-center justify-between w-full mb-1">
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-gray-600 rounded-full"></div>
@@ -147,7 +147,7 @@
                             <i class="fa-solid fa-check-circle text-secondary"></i>
                             <h4 class="text-[16px] font-regular text-gray-400 uppercase tracking-wider">Test Result</h4>
                         </div>
-                        <p class="text-[34px] font-re text-secondary">PASS</p>
+                        <p id="stat-test-result" class="text-[34px] font-bold text-gray-500">--</p>
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
@@ -155,7 +155,7 @@
                             <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Execution Time
                             </h4>
                         </div>
-                        <p class="text-[34px] font-bold text-white">12.4<span class="text-[22px] text-gray-500">s</span>
+                        <p id="stat-execution-time" class="text-[34px] font-bold text-white">--<span class="text-[22px] text-gray-500">s</span>
                         </p>
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
@@ -163,7 +163,7 @@
                             <i class="fa-solid fa-coins text-primary"></i>
                             <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Token Cost</h4>
                         </div>
-                        <p class="text-[34px] font-bold text-white">4,250</p>
+                        <p id="stat-token-cost" class="text-[34px] font-bold text-white">--</p>
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
@@ -172,7 +172,7 @@
                                 Score</h4>
                         </div>
                         <div class="flex items-end gap-1">
-                            <p class="text-[34px] font-bold text-blue-400">94</p>
+                            <p id="stat-reliability" class="text-[34px] font-bold text-blue-400">--</p>
                             <p class="text-[18px] text-gray-500 mb-1">/100</p>
                         </div>
                     </div>
