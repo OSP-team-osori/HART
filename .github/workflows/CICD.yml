@@ -1,0 +1,100 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [ "main" ] # 필요시 실제 배포용 브랜치명(예: master 등)으로 변경하세요.
+  workflow_dispatch: # 수동 트리거 허용
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 전체 소스 코드 체크아웃 (루트 디렉토리 기준)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Docker Buildx 설정 (멀티 플랫폼 환경 구성용)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. Docker Hub 로그인
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ----------------------------------------------------
+      # [1] Spring Boot Backend App 빌드
+      # 기존 docker-compose에서 context: .. 이었으므로 
+      # 루트(.)를 컨텍스트로 잡고 backend 내부의 Dockerfile을 타겟팅합니다.
+      # ----------------------------------------------------
+      - name: Build and push Backend App
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/agent-harness-backend:latest
+          
+          # 👇 빌드 시 이전 캐시를 사용하지 않고 100% 새로 빌드하도록 강제하는 옵션입니다.
+          no-cache: true 
+          
+          # 기존의 cache-from과 cache-to 옵션은 주석 처리 또는 삭제합니다.
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
+  # ======================================================================
+  # [CD] 배포 잡
+  # needs: build-and-push  ->  위 CI 잡이 "성공"했을 때만 실행됩니다.
+  #   - build/push 중 하나라도 실패하면 이 잡은 통째로 스킵됩니다.
+  #   - push 스텝이 끝나기 전엔 build-and-push 가 완료로 잡히지 않으므로,
+  #     서버가 옛 이미지를 당겨오는 경쟁 상태(race)도 구조적으로 방지됩니다.
+  # ======================================================================
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          # 아래 script 안에서 docker login 에 쓰기 위해 러너의 env 값을 원격으로 전달
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+          script: |
+            set -e
+
+            # Docker Hub 이미지가 private 인 경우 필요. public 이면 이 두 줄은 없어도 됩니다.
+            # echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+            # 👇 서버의 git 저장소(= docker-compose.yml 이 있는 곳) 실제 경로로 변경하세요.
+            cd /home/osori/HART
+
+            # [핵심 0] 저장소 최신화 — docker-compose.yml / .env / nginx 설정 등
+            #          "이미지에 안 들어가는" 파일들을 git 에서 최신으로 맞춤.
+            #          (앱 소스코드는 이미 이미지 안에 들어있으므로 git pull 대상이 아님)
+            #          git pull 대신 fetch+reset 을 쓰는 이유:
+            #          서버에 로컬 변경이 있어도 merge 충돌로 배포가 멈추지 않게 하기 위함.
+            git fetch origin
+            git reset --hard origin/main    # 배포 브랜치가 main 이 아니면 여기 수정
+            
+            cd /home/osori/HART/infra
+            
+            # [핵심 1] 레지스트리에서 :latest 의 최신 digest 를 강제로 새로 내려받음
+            #          (이게 없으면 로컬에 캐시된 옛 :latest 를 그대로 씀)
+            docker compose pull
+
+            # [핵심 2] compose 가 "변경 없음"으로 판단해도 컨테이너를 강제 재생성
+            #          --force-recreate 가 캐시/스테일 이미지 문제를 확실히 차단
+            docker compose up -d --force-recreate
+
+            # 교체 후 떠다니는(dangling) 옛 이미지 정리 — 디스크 누수 방지
+            docker image prune -f
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
