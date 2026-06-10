@@ -27,8 +27,8 @@
     <main class="flex-1 p-12 flex flex-col relative z-10 overflow-y-auto">
         <!-- Header -->
         <div class="flex items-center gap-6 mb-12 mt-4">
-            <h1 class="text-[40px] font-medium text-white tracking-wide">Agent Name</h1>
-            <div class="border border-gray-400 text-gray-200 rounded-full px-5 py-1.5 text-[18px]">
+            <h1 id="agent-name-title" class="text-[40px] font-medium text-white tracking-wide">Agent Name</h1>
+            <div id="agent-status-badge" class="border border-gray-400 text-gray-200 rounded-full px-5 py-1.5 text-[18px]">
                 상태 뱃지
             </div>
         </div>
@@ -53,20 +53,20 @@
     </main>
     <script src="sidebar.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        (function() {
             const params = new URLSearchParams(window.location.search);
             const name = params.get('name');
             const status = params.get('status');
             
             if (name) {
-                const titleEl = document.querySelector('h1.text-[40px]');
+                const titleEl = document.getElementById('agent-name-title');
                 if (titleEl) titleEl.textContent = name;
             }
             if (status) {
-                const badgeEl = document.querySelector('.border-gray-400');
+                const badgeEl = document.getElementById('agent-status-badge');
                 if (badgeEl) badgeEl.textContent = status;
             }
-        });
+        })();
     </script>
 </body>
 
