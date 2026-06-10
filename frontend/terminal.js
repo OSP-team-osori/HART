@@ -40,11 +40,11 @@ function renderLog(chunk) {
 
             const text = currentLineElement.textContent;
             if (text.includes("[INFO]")) {
-                currentLineElement.className = "text-blue-400 font-semibold whitespace-pre-wrap";
+                currentLineElement.className = "text-primary font-semibold whitespace-pre-wrap";
             } else if (text.includes("[WARN]")) {
                 currentLineElement.className = "text-yellow-400 font-semibold whitespace-pre-wrap";
             } else if (text.includes("[SUCCESS]")) {
-                currentLineElement.className = "text-secondary font-bold whitespace-pre-wrap";
+                currentLineElement.className = "text-primary font-bold whitespace-pre-wrap";
             } else if (text.includes("[ERROR]") || text.includes("FAIL")) {
                 currentLineElement.className = "text-danger font-bold whitespace-pre-wrap";
             }
@@ -188,7 +188,7 @@ function updateTestResult(testStatus) {
 
     el.textContent = status;
     el.className = isPass
-        ? 'text-[34px] font-bold text-secondary'
+        ? 'text-[34px] font-bold text-primary'
         : 'text-[34px] font-bold text-danger';
 }
 

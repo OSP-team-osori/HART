@@ -27,8 +27,8 @@
         <div class="h-20 flex items-center px-6 border-b border-white/5">
             <div onclick="location.href='Dashboard.html'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
                 <div
-                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-                    <i class="fa-solid fa-microchip text-white text-[22px]"></i>
+                    class="w-10 h-10 rounded-lg bg-primaryDim flex items-center justify-center shadow-lg shadow-primary/20">
+                    <i class="fa-solid fa-microchip text-primary text-[22px]"></i>
                 </div>
                 <div>
                     <h1 class="text-[24px] font-bold tracking-wide text-white">HART<span
@@ -55,7 +55,7 @@
                         <div class="flex items-center justify-between w-full mb-1">
                             <div class="flex items-center gap-2 relative z-10">
                                 <div
-                                    class="w-2.5 h-2.5 bg-secondary rounded-full animate-pulse shadow-[0_0_8px_#10B981]">
+                                    class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse shadow-[0_0_8px_#00FF88]">
                                 </div>
                                 <span class="font-bold text-white text-[20px]">Agent 1 (Aider)</span>
                             </div>
@@ -135,7 +135,7 @@
                             placeholder="e.g., Implement password validation logic..."></textarea>
                         <button
                             id="run-btn"
-                            class="absolute bottom-3 right-3 bg-gradient-to-r from-primary to-indigo-600 hover:from-indigo-500 hover:to-primary text-white px-6 py-2 rounded-md text-[18px] font-semibold transition-all shadow-lg shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0">
+                            class="absolute bottom-3 right-3 bg-primary hover:bg-primaryMuted text-dark px-6 py-2 rounded-md text-[18px] font-semibold transition-all shadow-lg shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0">
                             Run Agent
                         </button>
                     </div>
@@ -144,14 +144,14 @@
                 <div class="col-span-4 grid grid-cols-2 grid-rows-2 gap-6">
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-check-circle text-secondary"></i>
+                            <i class="fa-solid fa-check-circle text-primary"></i>
                             <h4 class="text-[16px] font-regular text-gray-400 uppercase tracking-wider">Test Result</h4>
                         </div>
                         <p id="stat-test-result" class="text-[34px] font-bold text-gray-500">--</p>
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-stopwatch text-accent"></i>
+                            <i class="fa-solid fa-stopwatch text-primary"></i>
                             <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Execution Time
                             </h4>
                         </div>
@@ -167,12 +167,12 @@
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-chart-line text-blue-400"></i>
+                            <i class="fa-solid fa-chart-line text-primary"></i>
                             <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Reliability
                                 Score</h4>
                         </div>
                         <div class="flex items-end gap-1">
-                            <p id="stat-reliability" class="text-[34px] font-bold text-blue-400">--</p>
+                            <p id="stat-reliability" class="text-[34px] font-bold text-primary">--</p>
                             <p class="text-[18px] text-gray-500 mb-1">/100</p>
                         </div>
                     </div>
@@ -182,19 +182,19 @@
 
             <section class="flex-1 min-h-[300px] flex flex-col">
                 <div
-                    class="glass-panel rounded-xl flex flex-col h-full overflow-hidden border border-secondary/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
+                    class="glass-panel rounded-xl flex flex-col h-full overflow-hidden border border-primary/20 shadow-[0_0_20px_rgba(0,255,136,0.05)]">
                     <div class="bg-darker/80 border-b border-white/5 p-3 flex justify-between items-center shrink-0">
                         <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-code text-secondary"></i>
+                            <i class="fa-solid fa-code text-primary"></i>
                             <h2 class="text-[16px] font-semibold text-white tracking-wide">Live Stream Terminal</h2>
                             <span
-                                class="text-[13px] font-bold px-2 py-0.5 bg-secondary/10 text-secondary rounded border border-secondary/30 ml-2">GREEN
+                                class="text-[13px] font-bold px-2 py-0.5 bg-primary/10 text-primary rounded border border-primary/30 ml-2">GREEN
                                 Phase</span>
                         </div>
                         <div class="flex gap-1.5">
                             <div class="w-2.5 h-2.5 rounded-full bg-danger/80"></div>
                             <div class="w-2.5 h-2.5 rounded-full bg-accent/80"></div>
-                            <div class="w-2.5 h-2.5 rounded-full bg-secondary/80"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-primary/80"></div>
                         </div>
                     </div>
                     <div id="terminal-content"
