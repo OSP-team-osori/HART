@@ -67,7 +67,7 @@ def run_harness_pipeline(prompt):
         }, ensure_ascii=False)
 
     try:
-        pytest_result = subprocess.run(["pytest"], capture_output=True, text=True)
+        pytest_result = subprocess.run(["python3", "-m", "pytest"], capture_output=True, text=True)
         
         # 피드백 4 반영: 테스트 파일이 없을 때(5)를 예외 처리
         if pytest_result.returncode == 0:
