@@ -272,61 +272,81 @@ function updateTokenCost(totalTokens) {
 }
 
 // ============================================================================
-// 6. GitHub 토큰 연동 UI 모듈
+// 6. GitHub 토큰 연동 UI - 이벤트 위임 방식 (동적 로드 타이밍 문제 해결)
+// document에 리스너를 달아서 sidebar가 언제 로드되든 동작 보장
 // ============================================================================
-function initGithubTokenUI() {
+
+function applyGithubTokenState() {
     const connectBtn = document.getElementById('github-connect-btn');
-    const tokenPanel = document.getElementById('github-token-panel');
-    const tokenInput = document.getElementById('github-token-input');
-    const saveBtn = document.getElementById('github-token-save-btn');
-    const clearBtn = document.getElementById('github-token-clear-btn');
-    const statusDot = document.getElementById('github-status-dot');
-    const btnLabel = document.getElementById('github-btn-label');
-
+    const statusDot  = document.getElementById('github-status-dot');
+    const btnLabel   = document.getElementById('github-btn-label');
     if (!connectBtn) return;
+    const token = localStorage.getItem('github_token');
+    if (token) {
+        if (statusDot) statusDot.style.display = 'inline-block';
+        if (btnLabel)  btnLabel.textContent = 'GitHub 연동됨';
+        connectBtn.classList.add('text-secondary');
+        connectBtn.classList.remove('text-gray-400');
+    } else {
+        if (statusDot) statusDot.style.display = 'none';
+        if (btnLabel)  btnLabel.textContent = 'GitHub 연동';
+        connectBtn.classList.remove('text-secondary');
+        connectBtn.classList.add('text-gray-400');
+    }
+}
 
-    function applyTokenState(token) {
-        if (token) {
-            statusDot.classList.remove('hidden');
-            btnLabel.textContent = 'GitHub 연동됨';
-            connectBtn.classList.add('text-secondary', 'border-secondary/30');
-            connectBtn.classList.remove('text-gray-400');
-        } else {
-            statusDot.classList.add('hidden');
-            btnLabel.textContent = 'GitHub 연동';
-            connectBtn.classList.remove('text-secondary', 'border-secondary/30');
-            connectBtn.classList.add('text-gray-400');
+function initGithubTokenUI() {
+    applyGithubTokenState();
+}
+
+// document 전체에서 클릭 감지 (sidebar 동적 로드와 무관하게 동작)
+document.addEventListener('click', (e) => {
+    // 연동 버튼 클릭
+    if (e.target.closest('#github-connect-btn')) {
+        const panel = document.getElementById('github-token-panel');
+        if (!panel) return;
+        const isHidden = panel.style.display === 'none' || panel.style.display === '';
+        panel.style.display = isHidden ? 'flex' : 'none';
+        panel.style.flexDirection = 'column';
+        panel.style.gap = '8px';
+        if (isHidden) {
+            const t = document.getElementById('github-token-input');
+            const r = document.getElementById('github-repo-input');
+            if (t) { t.value = localStorage.getItem('github_token') || ''; t.focus(); }
+            if (r) r.value = localStorage.getItem('github_repo') || '';
         }
     }
 
-    // 저장된 토큰 불러오기
-    applyTokenState(localStorage.getItem('github_token'));
-
-    connectBtn.addEventListener('click', () => {
-        tokenPanel.classList.toggle('hidden');
-        if (!tokenPanel.classList.contains('hidden')) {
-            const saved = localStorage.getItem('github_token');
-            if (saved) tokenInput.value = saved;
-            tokenInput.focus();
-        }
-    });
-
-    saveBtn.addEventListener('click', () => {
-        const token = tokenInput.value.trim();
+    // 저장 버튼 클릭
+    if (e.target.closest('#github-token-save-btn')) {
+        const t = document.getElementById('github-token-input');
+        const r = document.getElementById('github-repo-input');
+        const panel = document.getElementById('github-token-panel');
+        const token = t ? t.value.trim() : '';
+        const repo  = r ? r.value.trim() : '';
         if (!token) { alert('토큰을 입력해주세요.'); return; }
         localStorage.setItem('github_token', token);
-        tokenPanel.classList.add('hidden');
-        tokenInput.value = '';
-        applyTokenState(token);
-    });
+        if (repo) localStorage.setItem('github_repo', repo);
+        else localStorage.removeItem('github_repo');
+        if (panel) panel.style.display = 'none';
+        if (t) t.value = '';
+        if (r) r.value = '';
+        applyGithubTokenState();
+    }
 
-    clearBtn.addEventListener('click', () => {
+    // 해제 버튼 클릭
+    if (e.target.closest('#github-token-clear-btn')) {
         localStorage.removeItem('github_token');
-        tokenInput.value = '';
-        tokenPanel.classList.add('hidden');
-        applyTokenState(null);
-    });
-}
+        localStorage.removeItem('github_repo');
+        const t = document.getElementById('github-token-input');
+        const r = document.getElementById('github-repo-input');
+        const panel = document.getElementById('github-token-panel');
+        if (t) t.value = '';
+        if (r) r.value = '';
+        if (panel) panel.style.display = 'none';
+        applyGithubTokenState();
+    }
+});
 
 // 5. 엔트리 포인트 및 POST 버튼 로직
 document.addEventListener("DOMContentLoaded", () => {
@@ -338,17 +358,13 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchLatestResult(); // 페이지 초기 진입 시 최신 지표 불러오기
     }
 
-    initGithubTokenUI();
-
     // 버튼 클릭 시 프롬프트를 백엔드로 전송 (POST 통신)
     const runBtn = document.getElementById('run-btn');
     const promptInput = document.getElementById('prompt-input');
-    const repoUrlInput = document.getElementById('repo-url-input');
-
     if (runBtn && promptInput) {
         runBtn.addEventListener('click', async () => {
             const promptText = promptInput.value.trim();
-            const repoUrl = repoUrlInput ? repoUrlInput.value.trim() : '';
+            const repoUrl = localStorage.getItem('github_repo') || '';
             const githubToken = localStorage.getItem('github_token') || '';
 
             if (!promptText) {
