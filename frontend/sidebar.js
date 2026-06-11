@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebarContainer.innerHTML = html;
             initResizeHandle(sidebarContainer);
             highlightCurrentAgent();
+            if (typeof initGithubTokenUI === 'function') initGithubTokenUI();
         })
         .catch(err => console.error('Failed to load sidebar:', err));
 });
