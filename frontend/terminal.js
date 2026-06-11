@@ -299,53 +299,68 @@ function initGithubTokenUI() {
     applyGithubTokenState();
 }
 
-// document 전체에서 클릭 감지 (sidebar 동적 로드와 무관하게 동작)
-document.addEventListener('click', (e) => {
-    // 연동 버튼 클릭
-    if (e.target.closest('#github-connect-btn')) {
-        const panel = document.getElementById('github-token-panel');
-        if (!panel) return;
-        const isHidden = panel.style.display === 'none' || panel.style.display === '';
-        panel.style.display = isHidden ? 'flex' : 'none';
-        panel.style.flexDirection = 'column';
-        panel.style.gap = '8px';
-        if (isHidden) {
-            const t = document.getElementById('github-token-input');
-            const r = document.getElementById('github-repo-input');
-            if (t) { t.value = localStorage.getItem('github_token') || ''; t.focus(); }
-            if (r) r.value = localStorage.getItem('github_repo') || '';
-        }
-    }
+function showGithubModal() {
+    if (document.getElementById('github-modal')) return;
 
-    // 저장 버튼 클릭
-    if (e.target.closest('#github-token-save-btn')) {
-        const t = document.getElementById('github-token-input');
-        const r = document.getElementById('github-repo-input');
-        const panel = document.getElementById('github-token-panel');
-        const token = t ? t.value.trim() : '';
-        const repo  = r ? r.value.trim() : '';
+    const modal = document.createElement('div');
+    modal.id = 'github-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999';
+
+    modal.innerHTML = `
+        <div style="background:#0f1117;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;width:360px;display:flex;flex-direction:column;gap:12px">
+            <h3 style="color:#fff;font-size:18px;font-weight:600;margin:0">GitHub 연동 설정</h3>
+            <input id="gh-modal-token" type="password"
+                style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;color:#d1d5db;font-size:14px;font-family:monospace;outline:none"
+                placeholder="토큰: ghp_xxxxxxxxxxxx" value="${localStorage.getItem('github_token') || ''}" />
+            <input id="gh-modal-repo" type="text"
+                style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;color:#d1d5db;font-size:14px;font-family:monospace;outline:none"
+                placeholder="레포: https://github.com/owner/repo" value="${localStorage.getItem('github_repo') || ''}" />
+            <div style="display:flex;gap:8px">
+                <button id="gh-modal-save"
+                    style="flex:1;padding:10px;border-radius:8px;background:#00FF88;color:#0a0c0e;font-size:15px;font-weight:600;border:none;cursor:pointer">
+                    저장
+                </button>
+                <button id="gh-modal-clear"
+                    style="padding:10px 16px;border-radius:8px;background:rgba(239,68,68,0.2);color:#ef4444;font-size:15px;font-weight:600;border:none;cursor:pointer">
+                    해제
+                </button>
+                <button id="gh-modal-close"
+                    style="padding:10px 16px;border-radius:8px;background:rgba(255,255,255,0.05);color:#9ca3af;font-size:15px;font-weight:600;border:none;cursor:pointer">
+                    닫기
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.getElementById('gh-modal-token').focus();
+
+    document.getElementById('gh-modal-save').onclick = () => {
+        const token = document.getElementById('gh-modal-token').value.trim();
+        const repo  = document.getElementById('gh-modal-repo').value.trim();
         if (!token) { alert('토큰을 입력해주세요.'); return; }
         localStorage.setItem('github_token', token);
         if (repo) localStorage.setItem('github_repo', repo);
         else localStorage.removeItem('github_repo');
-        if (panel) panel.style.display = 'none';
-        if (t) t.value = '';
-        if (r) r.value = '';
+        modal.remove();
         applyGithubTokenState();
-    }
+    };
 
-    // 해제 버튼 클릭
-    if (e.target.closest('#github-token-clear-btn')) {
+    document.getElementById('gh-modal-clear').onclick = () => {
         localStorage.removeItem('github_token');
         localStorage.removeItem('github_repo');
-        const t = document.getElementById('github-token-input');
-        const r = document.getElementById('github-repo-input');
-        const panel = document.getElementById('github-token-panel');
-        if (t) t.value = '';
-        if (r) r.value = '';
-        if (panel) panel.style.display = 'none';
+        modal.remove();
         applyGithubTokenState();
-    }
+    };
+
+    document.getElementById('gh-modal-close').onclick = () => modal.remove();
+
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+// document 전체에서 클릭 감지
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#github-connect-btn')) showGithubModal();
 });
 
 // 5. 엔트리 포인트 및 POST 버튼 로직
