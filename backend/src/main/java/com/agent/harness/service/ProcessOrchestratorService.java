@@ -14,6 +14,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,6 +30,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.agent.harness.controller.dto.LatestResultResponse;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -90,72 +99,64 @@ public class ProcessOrchestratorService {
     /**
      * 외부에서 비동기로 프로세스를 실행하도록 요청하는 퍼블릭 메서드
      */
-    public void executeAsync(String... command) {
-        // compareAndSet을 통해 동시에 여러 요청이 와도 단 하나만 true로 변경 성공 (Thread-Safe)
+    public void executeAsync(String prompt, String repoUrl, String githubToken) {
         if (!isRunning.compareAndSet(false, true)) {
             throw new IllegalStateException("An agent process is already running. Only single agent execution is supported in MVP.");
         }
 
-        // JPA 연동을 위한 임시 AgentTask 생성 및 저장 (상태: RUNNING)
         AgentTask task = AgentTask.builder()
-                .prompt(String.join(" ", command))
+                .prompt(prompt)
                 .status(TaskStatus.RUNNING)
                 .build();
         AgentTask savedTask = agentTaskRepository.save(task);
         log.info("AgentTask created and saved to DB. ID: {}, Status: RUNNING", savedTask.getId());
 
-        // 스레드 풀에서 비동기 실행 (컨트롤러에서 new Thread() 생성 방지)
         executorService.submit(() -> {
             try {
-                runCommandInternal(savedTask, command);
+                runCommandInternal(savedTask, prompt, repoUrl, githubToken);
             } finally {
-                // 정상 종료든 에러가 터졌든 무조건 상태를 false로 복구하여 다음 실행 허용
                 isRunning.set(false);
             }
         });
     }
 
-    private void runCommandInternal(AgentTask task, String... command) {
+    private void runCommandInternal(AgentTask task, String prompt, String repoUrl, String githubToken) {
         long startTime = System.currentTimeMillis();
         int exitCode = -1;
         String lastLine = null;
+        // 요청 토큰 우선, 없으면 환경변수 사용
+        String resolvedToken = (githubToken != null && !githubToken.isEmpty())
+                ? githubToken
+                : System.getenv("GITHUB_TOKEN");
         try {
-
-            // 1. Task 전용 새 디렉토리 경로 설정 및 생성 (예: 프로젝트루트/workspace)
             File baseDir = getProjectRootDir();
             File taskDir = new File(baseDir, "workspace");
-        
-            if (!taskDir.exists()) {
-                taskDir.mkdirs(); // 새 디렉토리 생성
-                log.info("새 작업 디렉토리가 생성되었습니다: {}", taskDir.getAbsolutePath());
-
-                // 2. 새 디렉토리에서 git init 실행
-                ProcessBuilder gitInitPb = new ProcessBuilder("git", "init");
-                gitInitPb.directory(taskDir); // 실행 위치를 새로 만든 폴더로 지정
-                Process gitProcess = gitInitPb.start();
-                gitProcess.waitFor(); // git init이 끝날 때까지 대기
-                log.info("해당 디렉토리에 git init을 완료했습니다.");
-            }
-
-            // PM이 구현한 파이썬 비서 단독 프로세스 실행
-            String prompt = String.join(" ", command);
+            String branchName = setupWorkspace(taskDir, repoUrl, task.getId(), resolvedToken);
             
             // [수정 포인트 1] 로그 파일의 경로를 절대 경로로 변환합니다.
             if (prompt.contains("ping") || prompt.isEmpty()) {
                 File dummyLog = new File(baseDir, "scripts/dummy_logs/modify_pass.log");
                 prompt = dummyLog.getAbsolutePath(); 
+            } else if (prompt.endsWith(".log")) {
+                File logFile = new File(prompt);
+                if (!logFile.isAbsolute()) {
+                    logFile = new File(baseDir, prompt);
+                }
+                prompt = logFile.getAbsolutePath();
             }
 
             ProcessBuilder processBuilder;
             
+            String pythonCmd = System.getProperty("os.name").toLowerCase().contains("win") ? "python" : "python3";
+
             // [수정 포인트 2] 실행할 파이썬 스크립트의 경로를 baseDir을 이용해 절대 경로로 지정합니다.
             if (prompt.endsWith(".log")) {
                 File scriptFile = new File(baseDir, "scripts/agent_wrapper.py");
-                processBuilder = new ProcessBuilder("python3", scriptFile.getAbsolutePath(), "--mock", prompt);
+                processBuilder = new ProcessBuilder(pythonCmd, scriptFile.getAbsolutePath(), "--mock", prompt);
                 log.info("Starting Mock offline simulation via agent_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             } else {
                 File scriptFile = new File(baseDir, "backend/run_wrapper.py");
-                processBuilder = new ProcessBuilder("python3", scriptFile.getAbsolutePath(), prompt);
+                processBuilder = new ProcessBuilder(pythonCmd, scriptFile.getAbsolutePath(), prompt);
                 log.info("Starting Real online agent trigger via run_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             }
 
@@ -222,6 +223,11 @@ public class ProcessOrchestratorService {
                 agentTaskRepository.save(task);
                 log.info("AgentTask updated. ID: {}, Status: {}", task.getId(), task.getStatus());
 
+                // 3. GitHub PR 생성 (repoUrl이 있고 코드 수정이 있을 때)
+                if (repoUrl != null && !repoUrl.isEmpty() && branchName != null && !"SKIPPED".equalsIgnoreCase(testStatus)) {
+                    pushAndCreatePR(taskDir, branchName, repoUrl, task.getPrompt(), testSummary, resolvedToken);
+                }
+
             } else {
                 log.error("Failed to parse JSON from Python wrapper. Last line was: {}", lastLine);
                 saveFailedTaskResult(task, exitCode, executionTimeMs, "Invalid output format from wrapper script.");
@@ -255,6 +261,157 @@ public class ProcessOrchestratorService {
         } catch (Exception ex) {
             log.error("Critical error saving failed task status to DB for Task ID: " + task.getId(), ex);
         }
+    }
+
+    private String setupWorkspace(File taskDir, String repoUrl, Long taskId, String token) throws Exception {
+        if (repoUrl != null && !repoUrl.isEmpty()) {
+            if (taskDir.exists()) {
+                Files.walk(taskDir.toPath())
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+            }
+
+            String cloneUrl = (token != null && !token.isEmpty())
+                ? repoUrl.replace("https://", "https://" + token + "@")
+                : repoUrl;
+
+            ProcessBuilder clonePb = new ProcessBuilder("git", "clone", cloneUrl, taskDir.getAbsolutePath());
+            clonePb.directory(taskDir.getParentFile());
+            clonePb.redirectErrorStream(true);
+            Process cloneProcess = clonePb.start();
+            cloneProcess.waitFor();
+            log.info("Cloned repo: {}", repoUrl);
+
+            String branchName = "hart/task-" + taskId;
+            ProcessBuilder branchPb = new ProcessBuilder("git", "checkout", "-b", branchName);
+            branchPb.directory(taskDir);
+            Process branchProcess = branchPb.start();
+            branchProcess.waitFor();
+            log.info("Created branch: {}", branchName);
+
+            return branchName;
+        } else {
+            if (!taskDir.exists()) {
+                taskDir.mkdirs();
+                ProcessBuilder gitInitPb = new ProcessBuilder("git", "init");
+                gitInitPb.directory(taskDir);
+                Process gitProcess = gitInitPb.start();
+                gitProcess.waitFor();
+                log.info("git init 완료: {}", taskDir.getAbsolutePath());
+            }
+            return null;
+        }
+    }
+
+    private void pushAndCreatePR(File taskDir, String branchName, String repoUrl, String prompt, String testSummary, String token) {
+        try {
+            if (token == null || token.isEmpty()) {
+                log.warn("GITHUB_TOKEN이 설정되지 않아 PR 생성을 건너뜁니다.");
+                broadcastLog("[INFO] GITHUB_TOKEN이 없어 PR 자동 생성을 건너뜁니다.");
+                return;
+            }
+
+            ProcessBuilder pushPb = new ProcessBuilder("git", "push", "origin", branchName);
+            pushPb.directory(taskDir);
+            pushPb.redirectErrorStream(true);
+            Process pushProcess = pushPb.start();
+            int pushExit = pushProcess.waitFor();
+
+            if (pushExit != 0) {
+                log.error("git push 실패 (exit code: {})", pushExit);
+                broadcastLog("[ERROR] GitHub 브랜치 push에 실패했습니다.");
+                return;
+            }
+            log.info("브랜치 push 완료: {}", branchName);
+
+            String repoPath = repoUrl
+                .replaceFirst("https://github\\.com/", "")
+                .replaceAll("\\.git$", "");
+
+            String title = "HART: " + prompt.substring(0, Math.min(60, prompt.length()));
+            String body = "🤖 HART 자동 생성 PR\\n\\n**작업 요약:** " + testSummary;
+            String jsonBody = String.format(
+                "{\"title\":\"%s\",\"body\":\"%s\",\"head\":\"%s\",\"base\":\"main\"}",
+                title.replace("\"", "\\\""),
+                body.replace("\"", "\\\""),
+                branchName
+            );
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.github.com/repos/" + repoPath + "/pulls"))
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/vnd.github+json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 201) {
+                log.info("PR 생성 완료: {}", response.body());
+                broadcastLog("[SUCCESS] GitHub PR이 자동으로 생성되었습니다: " + branchName);
+            } else {
+                log.error("PR 생성 실패 (status: {}): {}", response.statusCode(), response.body());
+                broadcastLog("[ERROR] PR 생성에 실패했습니다. (status: " + response.statusCode() + ")");
+            }
+
+        } catch (Exception e) {
+            log.error("PR 생성 중 오류 발생", e);
+            broadcastLog("[ERROR] PR 생성 중 오류: " + e.getMessage());
+        }
+    }
+
+    public Optional<LatestResultResponse> getLatestResult() {
+        return taskResultRepository.findFirstByOrderByIdDesc()
+                .map(result -> {
+                    AgentTask task = result.getTask();
+                    int confidenceScore = calculateConfidenceScore(result);
+
+                    return LatestResultResponse.builder()
+                            .id(result.getId())
+                            .taskId(task.getId())
+                            .prompt(task.getPrompt())
+                            .status(task.getStatus())
+                            .createdAt(task.getCreatedAt())
+                            .finishedAt(task.getFinishedAt())
+                            .isSuccess(result.isSuccess())
+                            .exitCode(result.getExitCode())
+                            .executionTimeMs(result.getExecutionTimeMs())
+                            .tokensUsed(result.getTokensUsed())
+                            .testStatus(result.getTestStatus())
+                            .cost(result.getCost())
+                            .testSummary(result.getTestSummary())
+                            .confidenceScore(confidenceScore)
+                            .build();
+                });
+    }
+
+    private int calculateConfidenceScore(TaskResult currentResult) {
+        List<TaskResult> recentResults = taskResultRepository.findTop10ByOrderByIdDesc();
+
+        double successRate = 100.0;
+        if (!recentResults.isEmpty()) {
+            long successCount = recentResults.stream()
+                    .filter(TaskResult::isSuccess)
+                    .count();
+            successRate = ((double) successCount / recentResults.size()) * 100.0;
+        }
+
+        int currentStatusScore = 0;
+        String status = currentResult.getTestStatus();
+        if (status != null) {
+            switch (status.toUpperCase()) {
+                case "PASS":    currentStatusScore = 100; break;
+                case "SKIPPED": currentStatusScore = 80;  break;
+                case "FAIL":    currentStatusScore = 30;  break;
+                default:        currentStatusScore = 0;
+            }
+        }
+
+        double rawScore = (successRate * 0.6) + (currentStatusScore * 0.4);
+        return (int) Math.round(rawScore);
     }
 
     public synchronized void stopProcess() {

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.http.MediaType;
+import com.agent.harness.controller.dto.LatestResultResponse;
 
 @RestController
 @RequestMapping("/api/v1/agent")
@@ -23,11 +24,13 @@ public class AgentController {
     public ResponseEntity<String> runTestProcess(@RequestBody(required = false) java.util.Map<String, String> payload) {
         try {
             String prompt = (payload != null) ? payload.get("prompt") : null;
-            String targetPrompt = (prompt == null || prompt.trim().isEmpty()) 
-                    ? "scripts/dummy_logs/modify_pass.log" 
+            String repoUrl = (payload != null) ? payload.get("repoUrl") : null;
+            String githubToken = (payload != null) ? payload.get("githubToken") : null;
+            String targetPrompt = (prompt == null || prompt.trim().isEmpty())
+                    ? "scripts/dummy_logs/modify_pass.log"
                     : prompt.trim();
-            
-            processOrchestratorService.executeAsync(targetPrompt);
+
+            processOrchestratorService.executeAsync(targetPrompt, repoUrl, githubToken);
             return ResponseEntity.ok("Test process started asynchronously with target: " + targetPrompt);
         } catch (IllegalStateException e) {
             // 중복 실행 시 409 Conflict 반환
@@ -50,5 +53,12 @@ public class AgentController {
     public ResponseEntity<String> stopProcess() {
         processOrchestratorService.stopProcess();
         return ResponseEntity.ok("Process stop signal sent.");
+    }
+
+    @GetMapping("/latest-result")
+    public ResponseEntity<LatestResultResponse> getLatestResult() {
+        return processOrchestratorService.getLatestResult()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
