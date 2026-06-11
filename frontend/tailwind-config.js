@@ -2,8 +2,7 @@ tailwind.config = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Pretendard GOV"', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', '"Helvetica Neue"', '"Segoe UI"', '"Apple SD Gothic Neo"', '"Noto Sans KR"', '"Malgun Gothic"', 'sans-serif'],
-                mono: ['JetBrains Mono', 'monospace'],
+                sans: ['"Pretendard GOV"', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', '"Helvetica Neue"', '"Segoe UI"', '"Apple SD Gothic Neo"', '"Noto Sans KR"', '"Malgun Gothic"', 'sans-serif']
             },
             colors: {
                 dark: '#0A0A0A',
