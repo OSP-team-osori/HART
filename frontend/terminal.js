@@ -238,28 +238,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const runBtn = document.getElementById('run-btn');
     const promptInput = document.getElementById('prompt-input');
 
+    const repoUrlInput = document.getElementById('repo-url-input');
+
     if (runBtn && promptInput) {
         runBtn.addEventListener('click', async () => {
             const promptText = promptInput.value.trim();
-            
+            const repoUrl = repoUrlInput ? repoUrlInput.value.trim() : '';
+
             if (!promptText) {
                 alert("AI에게 지시할 내용을 입력해주세요!");
                 return;
             }
 
-            // 전송 중 UI 상태 변경 방지
             runBtn.innerText = "Running...";
             runBtn.disabled = true;
             console.log("[Terminal] 백엔드로 작업 지시 전송 중...");
 
             try {
-                // ✅ 프롬프트를 8090 백엔드 포트로 발사!
                 const response = await fetch('/api/v1/agent/run-test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ prompt: promptText })
+                    body: JSON.stringify({ prompt: promptText, repoUrl: repoUrl })
                 });
 
                 if (response.status === 409) throw new Error("이미 에이전트가 실행 중입니다. 완료 후 다시 시도해주세요.");
