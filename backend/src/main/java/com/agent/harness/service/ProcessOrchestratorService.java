@@ -30,7 +30,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import com.agent.harness.controller.dto.LatestResultResponse;
+import com.agent.harness.controller.dto.GlobalStatsResponse;
 import java.util.Optional;
 
 @Slf4j
@@ -365,27 +367,45 @@ public class ProcessOrchestratorService {
 
     public Optional<LatestResultResponse> getLatestResult() {
         return taskResultRepository.findFirstByOrderByIdDesc()
-                .map(result -> {
-                    AgentTask task = result.getTask();
-                    int confidenceScore = calculateConfidenceScore(result);
+                .map(this::mapToLatestResultResponse);
+    }
 
-                    return LatestResultResponse.builder()
-                            .id(result.getId())
-                            .taskId(task.getId())
-                            .prompt(task.getPrompt())
-                            .status(task.getStatus())
-                            .createdAt(task.getCreatedAt())
-                            .finishedAt(task.getFinishedAt())
-                            .isSuccess(result.isSuccess())
-                            .exitCode(result.getExitCode())
-                            .executionTimeMs(result.getExecutionTimeMs())
-                            .tokensUsed(result.getTokensUsed())
-                            .testStatus(result.getTestStatus())
-                            .cost(result.getCost())
-                            .testSummary(result.getTestSummary())
-                            .confidenceScore(confidenceScore)
-                            .build();
-                });
+    public List<LatestResultResponse> getRecentResults() {
+        return taskResultRepository.findTop10ByOrderByIdDesc().stream()
+                .map(this::mapToLatestResultResponse)
+                .collect(Collectors.toList());
+    }
+
+    public GlobalStatsResponse getGlobalStats() {
+        Integer totalTokens = taskResultRepository.sumTokensUsed();
+        Double totalCost = taskResultRepository.sumCost();
+        
+        return GlobalStatsResponse.builder()
+                .totalTokens(totalTokens != null ? totalTokens : 0)
+                .totalCost(totalCost != null ? totalCost : 0.0)
+                .build();
+    }
+
+    private LatestResultResponse mapToLatestResultResponse(TaskResult result) {
+        AgentTask task = result.getTask();
+        int confidenceScore = calculateConfidenceScore(result);
+        
+        return LatestResultResponse.builder()
+                .id(result.getId())
+                .taskId(task.getId())
+                .prompt(task.getPrompt())
+                .status(task.getStatus())
+                .createdAt(task.getCreatedAt())
+                .finishedAt(task.getFinishedAt())
+                .isSuccess(result.isSuccess())
+                .exitCode(result.getExitCode())
+                .executionTimeMs(result.getExecutionTimeMs())
+                .tokensUsed(result.getTokensUsed())
+                .testStatus(result.getTestStatus())
+                .cost(result.getCost())
+                .testSummary(result.getTestSummary())
+                .confidenceScore(confidenceScore)
+                .build();
     }
 
     private int calculateConfidenceScore(TaskResult currentResult) {
