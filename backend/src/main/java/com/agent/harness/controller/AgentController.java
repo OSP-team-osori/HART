@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.http.MediaType;
+import com.agent.harness.controller.dto.LatestResultResponse;
 
 @RestController
 @RequestMapping("/api/v1/agent")
@@ -52,5 +53,12 @@ public class AgentController {
     public ResponseEntity<String> stopProcess() {
         processOrchestratorService.stopProcess();
         return ResponseEntity.ok("Process stop signal sent.");
+    }
+
+    @GetMapping("/latest-result")
+    public ResponseEntity<LatestResultResponse> getLatestResult() {
+        return processOrchestratorService.getLatestResult()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

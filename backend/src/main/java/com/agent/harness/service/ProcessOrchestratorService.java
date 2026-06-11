@@ -30,6 +30,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.agent.harness.controller.dto.LatestResultResponse;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -135,18 +137,26 @@ public class ProcessOrchestratorService {
             if (prompt.contains("ping") || prompt.isEmpty()) {
                 File dummyLog = new File(baseDir, "scripts/dummy_logs/modify_pass.log");
                 prompt = dummyLog.getAbsolutePath(); 
+            } else if (prompt.endsWith(".log")) {
+                File logFile = new File(prompt);
+                if (!logFile.isAbsolute()) {
+                    logFile = new File(baseDir, prompt);
+                }
+                prompt = logFile.getAbsolutePath();
             }
 
             ProcessBuilder processBuilder;
             
+            String pythonCmd = System.getProperty("os.name").toLowerCase().contains("win") ? "python" : "python3";
+
             // [수정 포인트 2] 실행할 파이썬 스크립트의 경로를 baseDir을 이용해 절대 경로로 지정합니다.
             if (prompt.endsWith(".log")) {
                 File scriptFile = new File(baseDir, "scripts/agent_wrapper.py");
-                processBuilder = new ProcessBuilder("python3", scriptFile.getAbsolutePath(), "--mock", prompt);
+                processBuilder = new ProcessBuilder(pythonCmd, scriptFile.getAbsolutePath(), "--mock", prompt);
                 log.info("Starting Mock offline simulation via agent_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             } else {
                 File scriptFile = new File(baseDir, "backend/run_wrapper.py");
-                processBuilder = new ProcessBuilder("python3", scriptFile.getAbsolutePath(), prompt);
+                processBuilder = new ProcessBuilder(pythonCmd, scriptFile.getAbsolutePath(), prompt);
                 log.info("Starting Real online agent trigger via run_wrapper.py for Task ID {}: {}", task.getId(), prompt);
             }
 
@@ -302,7 +312,6 @@ public class ProcessOrchestratorService {
                 return;
             }
 
-            // 브랜치 push
             ProcessBuilder pushPb = new ProcessBuilder("git", "push", "origin", branchName);
             pushPb.directory(taskDir);
             pushPb.redirectErrorStream(true);
@@ -316,7 +325,6 @@ public class ProcessOrchestratorService {
             }
             log.info("브랜치 push 완료: {}", branchName);
 
-            // 레포 경로 파싱 (https://github.com/owner/repo.git → owner/repo)
             String repoPath = repoUrl
                 .replaceFirst("https://github\\.com/", "")
                 .replaceAll("\\.git$", "");
@@ -353,6 +361,57 @@ public class ProcessOrchestratorService {
             log.error("PR 생성 중 오류 발생", e);
             broadcastLog("[ERROR] PR 생성 중 오류: " + e.getMessage());
         }
+    }
+
+    public Optional<LatestResultResponse> getLatestResult() {
+        return taskResultRepository.findFirstByOrderByIdDesc()
+                .map(result -> {
+                    AgentTask task = result.getTask();
+                    int confidenceScore = calculateConfidenceScore(result);
+
+                    return LatestResultResponse.builder()
+                            .id(result.getId())
+                            .taskId(task.getId())
+                            .prompt(task.getPrompt())
+                            .status(task.getStatus())
+                            .createdAt(task.getCreatedAt())
+                            .finishedAt(task.getFinishedAt())
+                            .isSuccess(result.isSuccess())
+                            .exitCode(result.getExitCode())
+                            .executionTimeMs(result.getExecutionTimeMs())
+                            .tokensUsed(result.getTokensUsed())
+                            .testStatus(result.getTestStatus())
+                            .cost(result.getCost())
+                            .testSummary(result.getTestSummary())
+                            .confidenceScore(confidenceScore)
+                            .build();
+                });
+    }
+
+    private int calculateConfidenceScore(TaskResult currentResult) {
+        List<TaskResult> recentResults = taskResultRepository.findTop10ByOrderByIdDesc();
+
+        double successRate = 100.0;
+        if (!recentResults.isEmpty()) {
+            long successCount = recentResults.stream()
+                    .filter(TaskResult::isSuccess)
+                    .count();
+            successRate = ((double) successCount / recentResults.size()) * 100.0;
+        }
+
+        int currentStatusScore = 0;
+        String status = currentResult.getTestStatus();
+        if (status != null) {
+            switch (status.toUpperCase()) {
+                case "PASS":    currentStatusScore = 100; break;
+                case "SKIPPED": currentStatusScore = 80;  break;
+                case "FAIL":    currentStatusScore = 30;  break;
+                default:        currentStatusScore = 0;
+            }
+        }
+
+        double rawScore = (successRate * 0.6) + (currentStatusScore * 0.4);
+        return (int) Math.round(rawScore);
     }
 
     public synchronized void stopProcess() {

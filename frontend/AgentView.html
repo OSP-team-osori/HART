@@ -5,140 +5,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HART TADD - AI Agent Control Platform</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-
+    <!-- Pretendard GOV Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-gov.min.css" />
+    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" as="style" crossorigin
-        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-gov.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <!-- Tailwind Config -->
     <script src="tailwind-config.js"></script>
-
+    <!-- Custom CSS -->
     <link href="styles.css" rel="stylesheet">
 </head>
 
 <body class="flex h-screen overflow-hidden text-[24px]">
 
-    <aside
-        class="hidden lg:flex flex-col w-[400px] sidebar-glass shrink-0 relative z-20 shadow-xl border-r border-white/5">
-        <div class="h-20 flex items-center px-6 border-b border-white/5">
-            <div onclick="location.href='Dashboard.html'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-                <div
-                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-                    <i class="fa-solid fa-microchip text-white text-[22px]"></i>
-                </div>
-                <div>
-                    <h1 class="text-[24px] font-bold tracking-wide text-white">HART<span
-                            class="text-primary">_</span>TADD
-                    </h1>
-                    <p class="text-[13px] text-gray-400 uppercase tracking-widest mt-0.5">Control Platform</p>
-                </div>
-            </div>
-        </div>
-
-        <nav class="flex-1 overflow-y-auto py-6 px-4">
-            <div class="flex justify-between items-center px-2 mb-4">
-                <h3 class="text-[16px] font-semibold text-gray-500 uppercase tracking-wider">Agent Fleet</h3>
-                <span
-                    class="text-[14px] bg-primary/20 text-primary px-2 py-0.5 rounded-full border border-primary/20">1/3
-                    Active</span>
-            </div>
-
-            <ul class="space-y-4">
-                <li>
-                    <button
-                        class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(79,70,229,0.1)] group relative overflow-hidden transition-all">
-                        <div class="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-full -mr-4 -mt-4"></div>
-                        <div class="flex items-center justify-between w-full mb-1">
-                            <div class="flex items-center gap-2 relative z-10">
-                                <div
-                                    class="w-2.5 h-2.5 bg-secondary rounded-full animate-pulse shadow-[0_0_8px_#10B981]">
-                                </div>
-                                <span class="font-bold text-white text-[20px]">Agent 1 (Aider)</span>
-                            </div>
-                            <i class="fa-solid fa-chevron-right text-[18px] text-primary opacity-70"></i>
-                        </div>
-                        <span class="text-[16px] text-gray-400 font-mono mt-1 block">PID: 14092 • Gem-1.5-Pro</span>
-                    </button>
-                </li>
-
-                <li>
-                    <button onclick="location.href='AgentView-dummy.html'"
-                        class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-pointer group">
-                        <div class="flex items-center justify-between w-full mb-1">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-gray-600 rounded-full"></div>
-                                <span class="font-semibold text-gray-300 text-[20px]">Agent 2 (Claude)</span>
-                            </div>
-                            <span
-                                class="text-[14px] px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-400">Soon</span>
-                        </div>
-                        <span class="text-[16px] text-gray-500 font-mono mt-1 block">Specialized in Code Review</span>
-                    </button>
-                </li>
-
-                <li>
-                    <button onclick="location.href='AgentView-dummy.html'"
-                        class="w-full flex flex-col justify-between text-left px-6 py-5 h-32 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all opacity-60 cursor-pointer group">
-                        <div class="flex items-center justify-between w-full mb-1">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-gray-600 rounded-full"></div>
-                                <span class="font-semibold text-gray-300 text-[20px]">Agent 3 (Devin)</span>
-                            </div>
-                            <span
-                                class="text-[14px] px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-400">Soon</span>
-                        </div>
-                        <span class="text-[16px] text-gray-500 font-mono mt-1 block">Autonomous Engineer</span>
-                    </button>
-                </li>
-            </ul>
-        </nav>
-
-        <div class="p-4 border-t border-white/5 flex flex-col gap-3">
-            <!-- GitHub 연동 섹션 -->
-            <div id="github-section">
-                <button
-                    id="github-connect-btn"
-                    class="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-darker/50 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5 text-[18px] font-semibold">
-                    <i class="fa-brands fa-github"></i>
-                    <span id="github-btn-label">GitHub 연동</span>
-                    <span id="github-status-dot" class="hidden w-2 h-2 rounded-full bg-secondary ml-1"></span>
-                </button>
-                <div id="github-token-panel" class="hidden mt-2 flex flex-col gap-2">
-                    <input
-                        id="github-token-input"
-                        type="password"
-                        class="w-full bg-darker/60 border border-white/10 rounded-lg px-3 py-2 text-[15px] font-mono text-gray-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-600"
-                        placeholder="ghp_xxxxxxxxxxxx" />
-                    <div class="flex gap-2">
-                        <button id="github-token-save-btn"
-                            class="flex-1 py-2 rounded-lg bg-primary/80 hover:bg-primary text-white text-[15px] font-semibold transition-colors">
-                            저장
-                        </button>
-                        <button id="github-token-clear-btn"
-                            class="px-3 py-2 rounded-lg bg-danger/20 hover:bg-danger/40 text-danger text-[15px] font-semibold transition-colors">
-                            해제
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <button
-                class="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-darker/50 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5 text-[18px] font-semibold">
-                <i class="fa-solid fa-plus"></i> Add New Agent
-            </button>
-        </div>
-    </aside>
+    <aside id="sidebar-container" class="hidden lg:flex flex-col w-[400px] sidebar-glass shrink-0 relative z-20 shadow-xl border-r border-white/5 transition-none"></aside>
 
     <main class="flex-1 flex flex-col h-screen relative">
 
         <div class="flex-1 overflow-y-auto p-8 pt-6 pb-12 flex flex-col gap-8 terminal-scroll relative z-10">
 
             <div class="flex items-center gap-6 mt-4 shrink-0">
-                <h1 class="text-[40px] font-medium text-white tracking-wide">Agent Name</h1>
-                <div class="border border-gray-400 text-gray-200 rounded-full px-5 py-1.5 text-[18px]">
+                <h1 id="agent-name-title" class="text-[40px] font-medium text-white tracking-wide">Agent Name</h1>
+                <div id="agent-status-badge" class="border border-gray-400 text-gray-200 rounded-full px-5 py-1.5 text-[18px]">
                     현재 상태
                 </div>
             </div>
@@ -149,7 +38,7 @@
                     style="min-height: 340px;">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-[18px] font-semibold text-white flex items-center gap-2">
-                            <i class="fa-solid fa-terminal text-primary"></i> Command Prompt
+                            <i class="fa-solid fa-terminal text-white"></i> Command Prompt
                         </h3>
                         <span
                             class="text-[14px] font-bold px-2 py-0.5 bg-danger/10 text-danger rounded border border-danger/30">RED
@@ -172,7 +61,7 @@
                             placeholder="e.g., Implement password validation logic..."></textarea>
                         <button
                             id="run-btn"
-                            class="absolute bottom-3 right-3 bg-gradient-to-r from-primary to-indigo-600 hover:from-indigo-500 hover:to-primary text-white px-6 py-2 rounded-md text-[18px] font-semibold transition-all shadow-lg shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0">
+                            class="absolute bottom-3 right-3 bg-primary hover:bg-primaryMuted text-dark px-6 py-2 rounded-md text-[18px] font-semibold transition-all shadow-lg shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0">
                             Run Agent
                         </button>
                     </div>
@@ -181,14 +70,14 @@
                 <div class="col-span-4 grid grid-cols-2 grid-rows-2 gap-6">
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-check-circle text-secondary"></i>
+                            <i class="fa-solid fa-check-circle text-white"></i>
                             <h4 class="text-[16px] font-regular text-gray-400 uppercase tracking-wider">Test Result</h4>
                         </div>
                         <p id="stat-test-result" class="text-[34px] font-bold text-gray-500">--</p>
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-stopwatch text-accent"></i>
+                            <i class="fa-solid fa-stopwatch text-white"></i>
                             <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Execution Time
                             </h4>
                         </div>
@@ -197,19 +86,19 @@
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-coins text-primary"></i>
+                            <i class="fa-solid fa-coins text-white"></i>
                             <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Token Cost</h4>
                         </div>
                         <p id="stat-token-cost" class="text-[34px] font-bold text-white">--</p>
                     </div>
                     <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-chart-line text-blue-400"></i>
+                            <i class="fa-solid fa-chart-line text-white"></i>
                             <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Reliability
                                 Score</h4>
                         </div>
                         <div class="flex items-end gap-1">
-                            <p id="stat-reliability" class="text-[34px] font-bold text-blue-400">--</p>
+                            <p id="stat-reliability" class="text-[34px] font-bold text-primary">--</p>
                             <p class="text-[18px] text-gray-500 mb-1">/100</p>
                         </div>
                     </div>
@@ -219,19 +108,19 @@
 
             <section class="flex-1 min-h-[300px] flex flex-col">
                 <div
-                    class="glass-panel rounded-xl flex flex-col h-full overflow-hidden border border-secondary/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
+                    class="glass-panel rounded-xl flex flex-col h-full overflow-hidden border border-primary/20 shadow-[0_0_20px_rgba(0,255,136,0.05)]">
                     <div class="bg-darker/80 border-b border-white/5 p-3 flex justify-between items-center shrink-0">
                         <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-code text-secondary"></i>
+                            <i class="fa-solid fa-code text-primary"></i>
                             <h2 class="text-[16px] font-semibold text-white tracking-wide">Live Stream Terminal</h2>
                             <span
-                                class="text-[13px] font-bold px-2 py-0.5 bg-secondary/10 text-secondary rounded border border-secondary/30 ml-2">GREEN
+                                class="text-[13px] font-bold px-2 py-0.5 bg-primary/10 text-primary rounded border border-primary/30 ml-2">GREEN
                                 Phase</span>
                         </div>
                         <div class="flex gap-1.5">
                             <div class="w-2.5 h-2.5 rounded-full bg-danger/80"></div>
-                            <div class="w-2.5 h-2.5 rounded-full bg-accent/80"></div>
-                            <div class="w-2.5 h-2.5 rounded-full bg-secondary/80"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-warning/80"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-primary/80"></div>
                         </div>
                     </div>
                     <div id="terminal-content"
@@ -242,6 +131,30 @@
         </div>
     </main>
     <script src="terminal.js"></script>
+    <script src="sidebar.js"></script>
+    <script>
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const name = params.get('name');
+            const status = params.get('status');
+            
+            if (name) {
+                const titleEl = document.getElementById('agent-name-title');
+                if (titleEl) titleEl.textContent = name;
+            }
+            if (status) {
+                const badgeEl = document.getElementById('agent-status-badge');
+                if (badgeEl) {
+                    badgeEl.textContent = status;
+                    if (status.toLowerCase() === 'active') {
+                        badgeEl.className = 'border border-primary text-primary rounded-full px-5 py-1.5 text-[18px] bg-primary/10 shadow-[0_0_10px_rgba(0,255,136,0.2)]';
+                    } else {
+                        badgeEl.className = 'border border-gray-400 text-gray-200 rounded-full px-5 py-1.5 text-[18px]';
+                    }
+                }
+            }
+        })();
+    </script>
 </body>
 
 </html>
