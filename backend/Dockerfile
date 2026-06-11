@@ -33,6 +33,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 1. Git 설치 (Debian/Ubuntu 예시)
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
+RUN pip install pytest
+
 # 2. Aider(AI 비서)가 커밋할 때 사용할 기본 Git 유저 정보 설정
 RUN git config --global user.email "aider@myproject.com" && \
     git config --global user.name "Aider Bot"
