@@ -1,24 +1,23 @@
 body {
-    background-color: #0B0C10;
+    background-color: #0A0A0A;
     background-image:
-        radial-gradient(circle at 15% 50%, rgba(79, 70, 229, 0.05), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%);
-    color: #E2E8F0;
+        radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03), transparent 40%);
+    color: #E0E0E0;
 }
 
 .glass-panel {
-    background: rgba(30, 31, 38, 0.6);
+    background: rgba(22, 22, 22, 0.6);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar-glass {
-    background: rgba(18, 19, 24, 0.7);
+    background: rgba(10, 12, 14, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .terminal-scroll::-webkit-scrollbar {
@@ -30,12 +29,17 @@ body {
 }
 
 .terminal-scroll::-webkit-scrollbar-thumb {
-    background: rgba(79, 70, 229, 0.4);
+    background: rgba(0, 255, 136, 0.3);
     border-radius: 4px;
 }
 
 .terminal-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(79, 70, 229, 0.8);
+    background: rgba(0, 255, 136, 0.6);
+}
+
+/* 포인트 초록 glow 유틸리티 */
+.glow-green {
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
 }
 
 .blinking-cursor {
@@ -52,4 +56,22 @@ body {
     50% {
         opacity: 0;
     }
+}
+
+/* Sidebar Resize Handle */
+.sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 30;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+    background-color: rgba(0, 255, 136, 0.5);
 }
