@@ -24,11 +24,13 @@ public class AgentController {
     public ResponseEntity<String> runTestProcess(@RequestBody(required = false) java.util.Map<String, String> payload) {
         try {
             String prompt = (payload != null) ? payload.get("prompt") : null;
-            String targetPrompt = (prompt == null || prompt.trim().isEmpty()) 
-                    ? "scripts/dummy_logs/modify_pass.log" 
+            String repoUrl = (payload != null) ? payload.get("repoUrl") : null;
+            String githubToken = (payload != null) ? payload.get("githubToken") : null;
+            String targetPrompt = (prompt == null || prompt.trim().isEmpty())
+                    ? "scripts/dummy_logs/modify_pass.log"
                     : prompt.trim();
-            
-            processOrchestratorService.executeAsync(targetPrompt);
+
+            processOrchestratorService.executeAsync(targetPrompt, repoUrl, githubToken);
             return ResponseEntity.ok("Test process started asynchronously with target: " + targetPrompt);
         } catch (IllegalStateException e) {
             // 중복 실행 시 409 Conflict 반환

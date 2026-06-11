@@ -271,9 +271,65 @@ function updateTokenCost(totalTokens) {
     el.textContent = Number(totalTokens).toLocaleString();
 }
 
+// ============================================================================
+// 6. GitHub 토큰 연동 UI 모듈
+// ============================================================================
+function initGithubTokenUI() {
+    const connectBtn = document.getElementById('github-connect-btn');
+    const tokenPanel = document.getElementById('github-token-panel');
+    const tokenInput = document.getElementById('github-token-input');
+    const saveBtn = document.getElementById('github-token-save-btn');
+    const clearBtn = document.getElementById('github-token-clear-btn');
+    const statusDot = document.getElementById('github-status-dot');
+    const btnLabel = document.getElementById('github-btn-label');
+
+    if (!connectBtn) return;
+
+    function applyTokenState(token) {
+        if (token) {
+            statusDot.classList.remove('hidden');
+            btnLabel.textContent = 'GitHub 연동됨';
+            connectBtn.classList.add('text-secondary', 'border-secondary/30');
+            connectBtn.classList.remove('text-gray-400');
+        } else {
+            statusDot.classList.add('hidden');
+            btnLabel.textContent = 'GitHub 연동';
+            connectBtn.classList.remove('text-secondary', 'border-secondary/30');
+            connectBtn.classList.add('text-gray-400');
+        }
+    }
+
+    // 저장된 토큰 불러오기
+    applyTokenState(localStorage.getItem('github_token'));
+
+    connectBtn.addEventListener('click', () => {
+        tokenPanel.classList.toggle('hidden');
+        if (!tokenPanel.classList.contains('hidden')) {
+            const saved = localStorage.getItem('github_token');
+            if (saved) tokenInput.value = saved;
+            tokenInput.focus();
+        }
+    });
+
+    saveBtn.addEventListener('click', () => {
+        const token = tokenInput.value.trim();
+        if (!token) { alert('토큰을 입력해주세요.'); return; }
+        localStorage.setItem('github_token', token);
+        tokenPanel.classList.add('hidden');
+        tokenInput.value = '';
+        applyTokenState(token);
+    });
+
+    clearBtn.addEventListener('click', () => {
+        localStorage.removeItem('github_token');
+        tokenInput.value = '';
+        tokenPanel.classList.add('hidden');
+        applyTokenState(null);
+    });
+}
+
 // 5. 엔트리 포인트 및 POST 버튼 로직
 document.addEventListener("DOMContentLoaded", () => {
-    // 백엔드 스트리밍 채널 활성화
     if (CONFIG.USE_MOCK) {
         runMockTerminal();
         fetchLatestResult(); // Mock 환경에서도 초기 데이터 렌더링
@@ -282,32 +338,35 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchLatestResult(); // 페이지 초기 진입 시 최신 지표 불러오기
     }
 
-    // 6. 버튼 클릭 시 프롬프트를 백엔드로 전송 (POST 통신)
+    initGithubTokenUI();
+
+    // 버튼 클릭 시 프롬프트를 백엔드로 전송 (POST 통신)
     const runBtn = document.getElementById('run-btn');
     const promptInput = document.getElementById('prompt-input');
+    const repoUrlInput = document.getElementById('repo-url-input');
 
     if (runBtn && promptInput) {
         runBtn.addEventListener('click', async () => {
             const promptText = promptInput.value.trim();
-            
+            const repoUrl = repoUrlInput ? repoUrlInput.value.trim() : '';
+            const githubToken = localStorage.getItem('github_token') || '';
+
             if (!promptText) {
                 alert("AI에게 지시할 내용을 입력해주세요!");
                 return;
             }
 
-            // 전송 중 UI 상태 변경 방지
             runBtn.innerText = "Running...";
             runBtn.disabled = true;
             console.log("[Terminal] 백엔드로 작업 지시 전송 중...");
 
             try {
-                // ✅ 프롬프트를 8090 백엔드 포트로 발사!
                 const response = await fetch('/api/v1/agent/run-test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ prompt: promptText })
+                    body: JSON.stringify({ prompt: promptText, repoUrl: repoUrl, githubToken: githubToken })
                 });
 
                 if (response.status === 409) throw new Error("이미 에이전트가 실행 중입니다. 완료 후 다시 시도해주세요.");
