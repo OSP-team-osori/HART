@@ -257,13 +257,17 @@ function initGithubTokenUI() {
     applyTokenState(localStorage.getItem('github_token'));
 
     connectBtn.addEventListener('click', () => {
-        tokenPanel.classList.toggle('hidden');
-        if (!tokenPanel.classList.contains('hidden')) {
+        const isHidden = tokenPanel.style.display === 'none' || tokenPanel.style.display === '';
+        if (isHidden) {
+            tokenPanel.style.display = 'flex';
+            tokenPanel.style.flexDirection = 'column';
             const savedToken = localStorage.getItem('github_token');
             const savedRepo = localStorage.getItem('github_repo');
             if (savedToken) tokenInput.value = savedToken;
             if (savedRepo && repoInput) repoInput.value = savedRepo;
             tokenInput.focus();
+        } else {
+            tokenPanel.style.display = 'none';
         }
     });
 
@@ -274,7 +278,7 @@ function initGithubTokenUI() {
         localStorage.setItem('github_token', token);
         if (repo) localStorage.setItem('github_repo', repo);
         else localStorage.removeItem('github_repo');
-        tokenPanel.classList.add('hidden');
+        tokenPanel.style.display = 'none';
         tokenInput.value = '';
         if (repoInput) repoInput.value = '';
         applyTokenState(token);
@@ -285,7 +289,7 @@ function initGithubTokenUI() {
         localStorage.removeItem('github_repo');
         tokenInput.value = '';
         if (repoInput) repoInput.value = '';
-        tokenPanel.classList.add('hidden');
+        tokenPanel.style.display = 'none';
         applyTokenState(null);
     });
 }
