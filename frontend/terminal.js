@@ -232,6 +232,7 @@ function initGithubTokenUI() {
     const connectBtn = document.getElementById('github-connect-btn');
     const tokenPanel = document.getElementById('github-token-panel');
     const tokenInput = document.getElementById('github-token-input');
+    const repoInput = document.getElementById('github-repo-input');
     const saveBtn = document.getElementById('github-token-save-btn');
     const clearBtn = document.getElementById('github-token-clear-btn');
     const statusDot = document.getElementById('github-status-dot');
@@ -253,30 +254,37 @@ function initGithubTokenUI() {
         }
     }
 
-    // 저장된 토큰 불러오기
     applyTokenState(localStorage.getItem('github_token'));
 
     connectBtn.addEventListener('click', () => {
         tokenPanel.classList.toggle('hidden');
         if (!tokenPanel.classList.contains('hidden')) {
-            const saved = localStorage.getItem('github_token');
-            if (saved) tokenInput.value = saved;
+            const savedToken = localStorage.getItem('github_token');
+            const savedRepo = localStorage.getItem('github_repo');
+            if (savedToken) tokenInput.value = savedToken;
+            if (savedRepo && repoInput) repoInput.value = savedRepo;
             tokenInput.focus();
         }
     });
 
     saveBtn.addEventListener('click', () => {
         const token = tokenInput.value.trim();
+        const repo = repoInput ? repoInput.value.trim() : '';
         if (!token) { alert('토큰을 입력해주세요.'); return; }
         localStorage.setItem('github_token', token);
+        if (repo) localStorage.setItem('github_repo', repo);
+        else localStorage.removeItem('github_repo');
         tokenPanel.classList.add('hidden');
         tokenInput.value = '';
+        if (repoInput) repoInput.value = '';
         applyTokenState(token);
     });
 
     clearBtn.addEventListener('click', () => {
         localStorage.removeItem('github_token');
+        localStorage.removeItem('github_repo');
         tokenInput.value = '';
+        if (repoInput) repoInput.value = '';
         tokenPanel.classList.add('hidden');
         applyTokenState(null);
     });
@@ -295,12 +303,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // 버튼 클릭 시 프롬프트를 백엔드로 전송 (POST 통신)
     const runBtn = document.getElementById('run-btn');
     const promptInput = document.getElementById('prompt-input');
-    const repoUrlInput = document.getElementById('repo-url-input');
-
     if (runBtn && promptInput) {
         runBtn.addEventListener('click', async () => {
             const promptText = promptInput.value.trim();
-            const repoUrl = repoUrlInput ? repoUrlInput.value.trim() : '';
+            const repoUrl = localStorage.getItem('github_repo') || '';
             const githubToken = localStorage.getItem('github_token') || '';
 
             if (!promptText) {
