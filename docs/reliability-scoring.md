@@ -107,30 +107,74 @@ graph TD
     gradlew bootRun
     ```
 
-2.  **데이터베이스 초기화 (선택 사항)**
-    *   기존 실패/성공 이력을 모두 지우고 100점부터 깔끔하게 계산을 테스트해보고 싶다면 아래 SQL 명령어를 실행하여 데이터를 리셋합니다.
+2.  **데이터베이스 초기화 (준비 단계)**
+    *   기존 실패/성공 이력을 모두 지우고 최초 상태(100점 시작)부터 깔끔하게 계산 과정을 검증하기 위해 아래 SQL 명령어를 실행하여 데이터를 리셋합니다.
     ```cmd
     docker exec -it postgres psql -U postgres -d agent_harness -c "TRUNCATE TABLE task_results CASCADE; TRUNCATE TABLE agent_tasks CASCADE;"
     ```
 
-3.  **Mock 에이전트 테스트 요청 (POST API 호출)**
-    *   윈도우 `CMD` 창에서는 큰따옴표 이스케이프(`\"`)가 필수입니다. 아래 명령어를 사용해 더미 로그 시나리오를 구동합니다.
+3.  **순차 검증 시나리오 진행**
 
-    *   **테스트 통과 (`PASS` / 현재 상태 100점):**
-        ```cmd
-        curl -X POST http://localhost:8090/api/v1/agent/run-test -H "Content-Type: application/json" -d "{\"prompt\": \"scripts/dummy_logs/modify_pass.log\"}"
-        ```
-    *   **테스트 실패 (`FAIL` / 현재 상태 30점):**
-        ```cmd
-        curl -X POST http://localhost:8090/api/v1/agent/run-test -H "Content-Type: application/json" -d "{\"prompt\": \"scripts/dummy_logs/modify_fail.log\"}"
-        ```
-    *   **코드 변경 없음 (`SKIPPED` / 현재 상태 80점):**
-        ```cmd
-        curl -X POST http://localhost:8090/api/v1/agent/run-test -H "Content-Type: application/json" -d "{\"prompt\": \"scripts/dummy_logs/no_modify.log\"}"
-        ```
+    *   **단계 1: 최초의 작업 통과 (PASS)**
+        *   **테스트 실행:**
+            ```cmd
+            curl -X POST http://localhost:8090/api/v1/agent/run-test -H "Content-Type: application/json" -d "{\"prompt\": \"scripts/dummy_logs/modify_pass.log\"}"
+            ```
+        *   **점수 계산식:** `(성공률 100% * 0.6) + (PASS 100점 * 0.4) = 60 + 40`
+        *   **결과 조회 및 확인:**
+            ```cmd
+            curl http://localhost:8090/api/v1/agent/latest-result
+            ```
+            *(🎯 예상 신뢰도 점수: **`100` 점**)*
 
-4.  **최종 결과 및 신뢰도 점수(confidenceScore) 조회**
-    *   테스트 프로세스가 완료된 후 다음 API를 조회하여 산출된 결과를 눈으로 직접 확인합니다.
+    *   **단계 2: 두 번째 작업의 테스트 실패 (FAIL)**
+        *   **테스트 실행:**
+            ```cmd
+            curl -X POST http://localhost:8090/api/v1/agent/run-test -H "Content-Type: application/json" -d "{\"prompt\": \"scripts/dummy_logs/modify_fail.log\"}"
+            ```
+        *   **점수 계산식:** `(성공률 50% * 0.6) + (FAIL 30점 * 0.4) = 30 + 12`
+        *   **결과 조회 및 확인:**
+            ```cmd
+            curl http://localhost:8090/api/v1/agent/latest-result
+            ```
+            *(🎯 예상 신뢰도 점수: **`42` 점**)*
+
+    *   **단계 3: 세 번째 작업의 변경 없음 (SKIPPED)**
+        *   **테스트 실행:**
+            ```cmd
+            curl -X POST http://localhost:8090/api/v1/agent/run-test -H "Content-Type: application/json" -d "{\"prompt\": \"scripts/dummy_logs/no_modify.log\"}"
+            ```
+        *   **점수 계산식:** `(성공률 66.67% * 0.6) + (SKIPPED 80점 * 0.4) = 40 + 32`
+        *   **결과 조회 및 확인:**
+            ```cmd
+            curl http://localhost:8090/api/v1/agent/latest-result
+            ```
+            *(🎯 예상 신뢰도 점수: **`72` 점**)*
+
+    *   **단계 4: 네 번째 작업의 프로세스 비정상 에러 (FAIL)**
+        *   **테스트 실행:**
+            ```cmd
+            curl -X POST http://localhost:8090/api/v1/agent/run-error-test
+            ```
+        *   **점수 계산식:** `(성공률 50% * 0.6) + (FAIL 30점 * 0.4) = 30 + 12`
+        *   **결과 조회 및 확인:**
+            ```cmd
+            curl http://localhost:8090/api/v1/agent/latest-result
+            ```
+            *(🎯 예상 신뢰도 점수: **`42` 점**)*
+
+4.  **요약 검증표 (PR 첨부용)**
+
+    | 단계 | 실행 API | 예상 `testStatus` | 예상 성공률 (이력) | 예상 신뢰도 점수 |
+    | :---: | :--- | :---: | :---: | :---: |
+    | **1단계** | `run-test` (modify_pass.log) | **PASS** | 100% (최초) | **100점** |
+    | **2단계** | `run-test` (modify_fail.log) | **FAIL** | 50% (1/2) | **42점** |
+    | **3단계** | `run-test` (no_modify.log) | **SKIPPED** | 66.67% (2/3) | **72점** |
+    | **4단계** | `run-error-test` (시스템 에러) | **FAIL** | 50% (2/4) | **42점** |
+
+5.  **DB에서 전체 요약 검증표 확인 방법 (신뢰도 점수 포함)**
+    *   테스트 시나리오 수행 후, 데이터베이스에 실제 저장된 이력 전체와 계산된 신뢰도 점수를 한눈에 보려면 아래 명령어를 실행합니다.
     ```cmd
-    curl http://localhost:8090/api/v1/agent/latest-result
+    docker exec postgres psql -U postgres -d agent_harness -c "SELECT r.id, t.status, r.is_success, r.test_status, ROUND((AVG(CASE WHEN r.is_success THEN 100.0 ELSE 0.0 END) OVER (ORDER BY r.id ROWS BETWEEN 9 PRECEDING AND CURRENT ROW) * 0.6) + (CASE r.test_status WHEN 'PASS' THEN 100 WHEN 'SKIPPED' THEN 80 WHEN 'FAIL' THEN 30 ELSE 0 END * 0.4)) AS score, r.test_summary FROM task_results r JOIN agent_tasks t ON r.task_id = t.id ORDER BY r.id;"
     ```
+
