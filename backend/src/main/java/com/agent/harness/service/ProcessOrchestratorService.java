@@ -97,7 +97,7 @@ public class ProcessOrchestratorService {
     /**
      * 외부에서 비동기로 프로세스를 실행하도록 요청하는 퍼블릭 메서드
      */
-    public void executeAsync(String prompt, String repoUrl) {
+    public void executeAsync(String prompt, String repoUrl, String githubToken) {
         if (!isRunning.compareAndSet(false, true)) {
             throw new IllegalStateException("An agent process is already running. Only single agent execution is supported in MVP.");
         }
@@ -111,21 +111,25 @@ public class ProcessOrchestratorService {
 
         executorService.submit(() -> {
             try {
-                runCommandInternal(savedTask, prompt, repoUrl);
+                runCommandInternal(savedTask, prompt, repoUrl, githubToken);
             } finally {
                 isRunning.set(false);
             }
         });
     }
 
-    private void runCommandInternal(AgentTask task, String prompt, String repoUrl) {
+    private void runCommandInternal(AgentTask task, String prompt, String repoUrl, String githubToken) {
         long startTime = System.currentTimeMillis();
         int exitCode = -1;
         String lastLine = null;
+        // 요청 토큰 우선, 없으면 환경변수 사용
+        String resolvedToken = (githubToken != null && !githubToken.isEmpty())
+                ? githubToken
+                : System.getenv("GITHUB_TOKEN");
         try {
             File baseDir = getProjectRootDir();
             File taskDir = new File(baseDir, "workspace");
-            String branchName = setupWorkspace(taskDir, repoUrl, task.getId());
+            String branchName = setupWorkspace(taskDir, repoUrl, task.getId(), resolvedToken);
             
             // [수정 포인트 1] 로그 파일의 경로를 절대 경로로 변환합니다.
             if (prompt.contains("ping") || prompt.isEmpty()) {
@@ -211,7 +215,7 @@ public class ProcessOrchestratorService {
 
                 // 3. GitHub PR 생성 (repoUrl이 있고 코드 수정이 있을 때)
                 if (repoUrl != null && !repoUrl.isEmpty() && branchName != null && !"SKIPPED".equalsIgnoreCase(testStatus)) {
-                    pushAndCreatePR(taskDir, branchName, repoUrl, task.getPrompt(), testSummary);
+                    pushAndCreatePR(taskDir, branchName, repoUrl, task.getPrompt(), testSummary, resolvedToken);
                 }
 
             } else {
@@ -249,9 +253,8 @@ public class ProcessOrchestratorService {
         }
     }
 
-    private String setupWorkspace(File taskDir, String repoUrl, Long taskId) throws Exception {
+    private String setupWorkspace(File taskDir, String repoUrl, Long taskId, String token) throws Exception {
         if (repoUrl != null && !repoUrl.isEmpty()) {
-            // 기존 workspace 삭제 후 새로 clone
             if (taskDir.exists()) {
                 Files.walk(taskDir.toPath())
                     .sorted(Comparator.reverseOrder())
@@ -259,7 +262,6 @@ public class ProcessOrchestratorService {
                     .forEach(File::delete);
             }
 
-            String token = System.getenv("GITHUB_TOKEN");
             String cloneUrl = (token != null && !token.isEmpty())
                 ? repoUrl.replace("https://", "https://" + token + "@")
                 : repoUrl;
@@ -292,9 +294,8 @@ public class ProcessOrchestratorService {
         }
     }
 
-    private void pushAndCreatePR(File taskDir, String branchName, String repoUrl, String prompt, String testSummary) {
+    private void pushAndCreatePR(File taskDir, String branchName, String repoUrl, String prompt, String testSummary, String token) {
         try {
-            String token = System.getenv("GITHUB_TOKEN");
             if (token == null || token.isEmpty()) {
                 log.warn("GITHUB_TOKEN이 설정되지 않아 PR 생성을 건너뜁니다.");
                 broadcastLog("[INFO] GITHUB_TOKEN이 없어 PR 자동 생성을 건너뜁니다.");

@@ -97,7 +97,34 @@
             </ul>
         </nav>
 
-        <div class="p-4 border-t border-white/5">
+        <div class="p-4 border-t border-white/5 flex flex-col gap-3">
+            <!-- GitHub 연동 섹션 -->
+            <div id="github-section">
+                <button
+                    id="github-connect-btn"
+                    class="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-darker/50 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5 text-[18px] font-semibold">
+                    <i class="fa-brands fa-github"></i>
+                    <span id="github-btn-label">GitHub 연동</span>
+                    <span id="github-status-dot" class="hidden w-2 h-2 rounded-full bg-secondary ml-1"></span>
+                </button>
+                <div id="github-token-panel" class="hidden mt-2 flex flex-col gap-2">
+                    <input
+                        id="github-token-input"
+                        type="password"
+                        class="w-full bg-darker/60 border border-white/10 rounded-lg px-3 py-2 text-[15px] font-mono text-gray-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-600"
+                        placeholder="ghp_xxxxxxxxxxxx" />
+                    <div class="flex gap-2">
+                        <button id="github-token-save-btn"
+                            class="flex-1 py-2 rounded-lg bg-primary/80 hover:bg-primary text-white text-[15px] font-semibold transition-colors">
+                            저장
+                        </button>
+                        <button id="github-token-clear-btn"
+                            class="px-3 py-2 rounded-lg bg-danger/20 hover:bg-danger/40 text-danger text-[15px] font-semibold transition-colors">
+                            해제
+                        </button>
+                    </div>
+                </div>
+            </div>
             <button
                 class="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg bg-darker/50 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5 text-[18px] font-semibold">
                 <i class="fa-solid fa-plus"></i> Add New Agent
