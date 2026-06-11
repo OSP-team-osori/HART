@@ -142,6 +142,9 @@ function detectAndApplyResult(data) {
     const elapsedMs = executionStartTime ? Date.now() - executionStartTime : null;
     updateStatCards(result, elapsedMs);
     executionStartTime = null;
+
+    // 스트림 종료 후 DB 저장 시간을 고려하여 1초 뒤에 최신 지표 갱신
+    setTimeout(fetchLatestResult, 1000);
 }
 
 /**
@@ -170,9 +173,52 @@ function tryParseResultJson(data) {
  * @param {number|null} elapsedMs - 실행 소요 시간(ms), 측정 불가 시 null
  */
 function updateStatCards(result, elapsedMs) {
-    updateTestResult(result.test_status);
-    updateExecutionTime(elapsedMs);
-    updateTokenCost(result.total_tokens);
+    updateTestResult(result.testStatus || result.test_status);
+    updateExecutionTime(result.executionTimeMs != null ? result.executionTimeMs : elapsedMs);
+    updateTokenCost(result.tokensUsed || result.total_tokens);
+    if (result.confidenceScore !== undefined) {
+        updateReliabilityScore(result.confidenceScore);
+    }
+}
+
+/**
+ * Reliability Score 카드를 갱신한다.
+ */
+function updateReliabilityScore(score) {
+    const el = document.getElementById('stat-reliability');
+    if (!el) return;
+
+    if (score == null) {
+        el.textContent = '--';
+        return;
+    }
+    el.textContent = score;
+}
+
+/**
+ * 백엔드에서 최신 실행 결과를 가져와 UI에 초기 세팅한다.
+ */
+async function fetchLatestResult() {
+    if (CONFIG.USE_MOCK) {
+        // 백엔드 연결 없이 프론트엔드 UI만 테스트하기 위한 가짜 데이터 반환
+        const mockData = {
+            testStatus: "PASS",
+            executionTimeMs: 4200,
+            tokensUsed: 1542,
+            confidenceScore: 92
+        };
+        updateStatCards(mockData, null);
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/v1/agent/latest-result');
+        if (!res.ok) return;
+        const data = await res.json();
+        updateStatCards(data, null);
+    } catch (e) {
+        console.warn('[Stats] 최신 결과 불러오기 실패:', e.message);
+    }
 }
 
 /**
@@ -306,8 +352,10 @@ document.addEventListener('click', (e) => {
 document.addEventListener("DOMContentLoaded", () => {
     if (CONFIG.USE_MOCK) {
         runMockTerminal();
+        fetchLatestResult(); // Mock 환경에서도 초기 데이터 렌더링
     } else {
         connectRealBackend();
+        fetchLatestResult(); // 페이지 초기 진입 시 최신 지표 불러오기
     }
 
     // 버튼 클릭 시 프롬프트를 백엔드로 전송 (POST 통신)
@@ -356,3 +404,136 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+// ============================================================================
+// 7. 모달 및 Chart.js 시각화 제어 로직
+// ============================================================================
+
+let reliabilityChartInstance = null;
+
+window.openChartModal = async function() {
+    const modal = document.getElementById('chart-modal');
+    const modalContent = document.getElementById('chart-modal-content');
+    if (!modal) return;
+    
+    // 모달 표시 애니메이션
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modalContent.classList.remove('scale-95');
+    modalContent.classList.add('scale-100');
+    
+    // Chart.js 캔버스 요소 가져오기
+    const canvas = document.getElementById('reliabilityChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // 데이터 소스 분기
+    let chartLabels = [];
+    let chartData = [];
+    
+    if (CONFIG.USE_MOCK) {
+        chartLabels = ['Run 1', 'Run 2', 'Run 3', 'Run 4', 'Run 5', 'Run 6', 'Run 7', 'Run 8', 'Run 9', 'Latest'];
+        chartData = [65, 70, 68, 75, 82, 90, 88, 95, 100, 92];
+    } else {
+        try {
+            const res = await fetch('/api/v1/agent/history');
+            if (res.ok) {
+                const historyList = await res.json();
+                // 백엔드에서 최신순(DESC)으로 오기 때문에 시간순(ASC)으로 뒤집어줍니다
+                historyList.reverse().forEach((item, index) => {
+                    chartLabels.push(`Run #${item.id}`);
+                    chartData.push(item.confidenceScore);
+                });
+            }
+        } catch(e) {
+            console.error('[Chart] 히스토리 데이터 로드 실패', e);
+        }
+    }
+
+    // 기존 차트가 있다면 파괴 (새로 그리기 위해)
+    if (reliabilityChartInstance) {
+        reliabilityChartInstance.destroy();
+    }
+    
+    // 네온 초록색 그라데이션(배경) 생성
+    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+    gradient.addColorStop(0, 'rgba(0, 255, 136, 0.4)');
+    gradient.addColorStop(1, 'rgba(0, 255, 136, 0.0)');
+    
+    // Chart.js 인스턴스 생성
+    reliabilityChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Confidence Score',
+                data: chartData,
+                borderColor: '#00FF88', // 테마 포인트 컬러
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#0A0A0A',
+                pointBorderColor: '#00FF88',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+                fill: true,
+                tension: 0.4 // 곡선 부드럽게
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 10, 10, 0.9)',
+                    titleColor: '#00FF88',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(0, 255, 136, 0.3)',
+                    borderWidth: 1,
+                    padding: 16,
+                    titleFont: { size: 16, family: "'Pretendard', sans-serif" },
+                    bodyFont: { size: 20, weight: 'bold', family: "'Pretendard', sans-serif" },
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `Score: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#9CA3AF',
+                        stepSize: 20,
+                        font: { size: 16, family: "'Pretendard', sans-serif" }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { 
+                        color: '#9CA3AF',
+                        font: { size: 16, family: "'Pretendard', sans-serif" }
+                    }
+                }
+            }
+        }
+    });
+};
+
+window.closeChartModal = function() {
+    const modal = document.getElementById('chart-modal');
+    const modalContent = document.getElementById('chart-modal-content');
+    if (!modal) return;
+    
+    // 모달 숨김 애니메이션
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+};

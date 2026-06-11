@@ -53,11 +53,11 @@
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col">
                             <span class="text-gray-400 text-[16px] uppercase tracking-wider font-semibold mb-1">TOTAL COST</span>
-                            <span class="text-white text-[34px] font-bold">$12.45</span>
+                            <span id="global-total-cost" class="text-white text-[34px] font-bold">$12.45</span>
                         </div>
                         <div class="flex flex-col">
                             <span class="text-gray-400 text-[16px] uppercase tracking-wider font-semibold mb-1">TOKENS USED</span>
-                            <span class="text-white text-[34px] font-bold">124,500</span>
+                            <span id="global-total-tokens" class="text-white text-[34px] font-bold">124,500</span>
                         </div>
                     </div>
                     <button class="w-14 h-14 rounded-full bg-white/5 hover:bg-primary text-gray-300 hover:text-dark flex items-center justify-center transition-all">
@@ -136,6 +136,9 @@
     </main>
 
     <script src="sidebar.js"></script>
+    
+    <!-- Dashboard Stats Logic -->
+    <script src="dashboard.js"></script>
 </body>
 
 </html>

@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.http.MediaType;
 import com.agent.harness.controller.dto.LatestResultResponse;
+import com.agent.harness.controller.dto.GlobalStatsResponse;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/agent")
@@ -60,5 +62,15 @@ public class AgentController {
         return processOrchestratorService.getLatestResult()
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<LatestResultResponse>> getHistory() {
+        return ResponseEntity.ok(processOrchestratorService.getRecentResults());
+    }
+
+    @GetMapping("/global-stats")
+    public ResponseEntity<GlobalStatsResponse> getGlobalStats() {
+        return ResponseEntity.ok(processOrchestratorService.getGlobalStats());
     }
 }
