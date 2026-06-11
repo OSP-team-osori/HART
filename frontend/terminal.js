@@ -6,7 +6,7 @@
 
 const CONFIG = {
     // ✅ 실제 백엔드와 통신하기 위해 false로 유지
-    USE_MOCK: true,
+    USE_MOCK: false,
     // ✅ 백엔드 SSE 스트리밍 엔드포인트 주소 고정 (8090 포트)
     API_URL: '/api/v1/agent/stream'
 };
@@ -395,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 let reliabilityChartInstance = null;
 
-window.openChartModal = function() {
+window.openChartModal = async function() {
     const modal = document.getElementById('chart-modal');
     const modalContent = document.getElementById('chart-modal-content');
     if (!modal) return;
@@ -410,6 +410,29 @@ window.openChartModal = function() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
+    // 데이터 소스 분기
+    let chartLabels = [];
+    let chartData = [];
+    
+    if (CONFIG.USE_MOCK) {
+        chartLabels = ['Run 1', 'Run 2', 'Run 3', 'Run 4', 'Run 5', 'Run 6', 'Run 7', 'Run 8', 'Run 9', 'Latest'];
+        chartData = [65, 70, 68, 75, 82, 90, 88, 95, 100, 92];
+    } else {
+        try {
+            const res = await fetch('/api/v1/agent/history');
+            if (res.ok) {
+                const historyList = await res.json();
+                // 백엔드에서 최신순(DESC)으로 오기 때문에 시간순(ASC)으로 뒤집어줍니다
+                historyList.reverse().forEach((item, index) => {
+                    chartLabels.push(`Run #${item.id}`);
+                    chartData.push(item.confidenceScore);
+                });
+            }
+        } catch(e) {
+            console.error('[Chart] 히스토리 데이터 로드 실패', e);
+        }
+    }
+
     // 기존 차트가 있다면 파괴 (새로 그리기 위해)
     if (reliabilityChartInstance) {
         reliabilityChartInstance.destroy();
@@ -424,10 +447,10 @@ window.openChartModal = function() {
     reliabilityChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Run 1', 'Run 2', 'Run 3', 'Run 4', 'Run 5', 'Run 6', 'Run 7', 'Run 8', 'Run 9', 'Latest'],
+            labels: chartLabels,
             datasets: [{
                 label: 'Confidence Score',
-                data: [65, 70, 68, 75, 82, 90, 88, 95, 100, 92], // 임시 Mock 데이터
+                data: chartData,
                 borderColor: '#00FF88', // 테마 포인트 컬러
                 backgroundColor: gradient,
                 borderWidth: 3,
