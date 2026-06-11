@@ -32,7 +32,7 @@ def run_harness_pipeline(prompt):
 
     aider_cmd = [
         "aider",
-        "--model", "gemini",
+        "--model", "gemini/gemini-3.5-flash",
         "--message", augmented_prompt,
         "--stream", 
         "--no-pretty",
