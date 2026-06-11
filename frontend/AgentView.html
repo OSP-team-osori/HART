@@ -81,11 +81,14 @@
                         </div>
                         <p id="stat-token-cost" class="text-[34px] font-bold text-white">--</p>
                     </div>
-                    <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group">
-                        <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-chart-line text-white"></i>
-                            <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Reliability
-                                Score</h4>
+                    <div class="glass-panel rounded-xl p-6 flex flex-col justify-between group cursor-pointer hover:bg-white/5 transition-colors border border-transparent hover:border-primary/20" onclick="openChartModal()">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-white"></i>
+                                <h4 class="text-[16px] font-semibold text-gray-400 uppercase tracking-wider">Reliability
+                                    Score</h4>
+                            </div>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[14px] text-gray-500 group-hover:text-primary transition-colors"></i>
                         </div>
                         <div class="flex items-end gap-1">
                             <p id="stat-reliability" class="text-[34px] font-bold text-primary">--</p>
@@ -145,6 +148,29 @@
             }
         })();
     </script>
+
+    <!-- Chart Modal (Hidden by default) -->
+    <div id="chart-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeChartModal()"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative glass-panel rounded-2xl border border-primary/30 shadow-[0_0_50px_rgba(0,255,136,0.15)] w-[1200px] max-w-[95%] p-10 transform scale-95 transition-transform duration-300" id="chart-modal-content">
+            <button onclick="closeChartModal()" class="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-xmark text-[24px]"></i>
+            </button>
+            <div class="mb-6">
+                <h2 class="text-[22px] font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-chart-line text-primary"></i>
+                    Reliability Trend
+                </h2>
+                <p class="text-[14px] text-gray-400 mt-1">최근 10회 에이전트 실행에 대한 신뢰도 점수 변화 추세입니다.</p>
+            </div>
+            <div class="w-full h-[500px]">
+                <canvas id="reliabilityChart"></canvas>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
